@@ -1,0 +1,132 @@
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #eef6ff, #f8fbff);
+  padding: 30px;
+}
+
+.register-card {
+  width: 430px;
+  background: white;
+  padding: 38px;
+  border-radius: 22px;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.12);
+}
+
+.register-icon {
+  width: 65px;
+  height: 65px;
+  margin: 0 auto 15px;
+  border-radius: 18px;
+  background: #e8f2ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 32px;
+}
+
+.register-card h1 {
+  text-align: center;
+  margin: 0;
+  color: #17365d;
+  font-size: 30px;
+}
+
+.register-subtitle {
+  text-align: center;
+  color: #777;
+  margin-bottom: 28px;
+}
+
+.register-card form {
+  display: flex;
+  flex-direction: column;
+}
+
+.register-card label {
+  margin: 12px 0 7px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.register-card input,
+.register-card select {
+  padding: 13px 14px;
+  border: 1px solid #d6dce5;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+  background: #fff;
+}
+
+.register-card input:focus,
+.register-card select:focus {
+  border-color: #2878d4;
+  box-shadow: 0 0 0 3px rgba(40, 120, 212, 0.1);
+}
+
+.register-card button {
+  margin-top: 24px;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: #1769aa;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.register-card button:hover {
+  background: #0f568f;
+}
+
+.register-card button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.register-message {
+  text-align: center;
+  margin-top: 18px;
+  font-weight: 600;
+}
+
+.login-text {
+  text-align: center;
+  margin-top: 25px;
+  color: #666;
+}
+
+.login-text span {
+  color: #1769aa;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.back-home {
+  text-align: center;
+  margin-top: 18px;
+  color: #555;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.back-home:hover,
+.login-text span:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 500px) {
+  .register-page {
+    padding: 15px;
+  }
+
+  .register-card {
+    width: 100%;
+    padding: 28px 22px;
+  }
+}

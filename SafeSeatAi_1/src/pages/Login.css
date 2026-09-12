@@ -1,0 +1,175 @@
+* {
+  box-sizing: border-box;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px 20px;
+  background: linear-gradient(135deg, #eef6ff, #f8fbff);
+  font-family: Arial, sans-serif;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 450px;
+  background: white;
+  padding: 40px;
+  border-radius: 22px;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+
+.login-logo {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e8f1ff;
+  font-size: 36px;
+}
+
+.login-card h1 {
+  margin: 5px 0;
+  font-size: 30px;
+  color: #172b4d;
+}
+
+.subtitle {
+  margin: 8px 0 28px;
+  color: #718096;
+  font-size: 15px;
+}
+
+.role-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.role-btn {
+  flex: 1;
+  padding: 13px 8px;
+  border: 1px solid #d8e1ee;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  color: #44546a;
+  transition: 0.2s;
+}
+
+.role-btn span {
+  display: block;
+  margin-top: 5px;
+}
+
+.role-btn:hover {
+  border-color: #2563eb;
+}
+
+.role-btn.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.login-card form {
+  text-align: left;
+}
+
+.login-card label {
+  display: block;
+  margin: 15px 0 7px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #26364d;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 13px 15px;
+  border: 1px solid #d7dee8;
+  border-radius: 10px;
+  outline: none;
+  font-size: 15px;
+  transition: 0.2s;
+}
+
+.login-card input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.forgot {
+  text-align: right;
+  margin: 12px 0 20px;
+}
+
+.forgot a {
+  color: #2563eb;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 11px;
+  background: #2563eb;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.login-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.register-text {
+  margin-top: 25px;
+  color: #718096;
+  font-size: 14px;
+}
+
+.register-text a {
+  margin-left: 5px;
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back-home {
+  display: inline-block;
+  margin-top: 22px;
+  color: #64748b;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.back-home:hover {
+  color: #2563eb;
+}
+
+@media (max-width: 500px) {
+  .login-card {
+    padding: 30px 22px;
+  }
+
+  .role-container {
+    gap: 6px;
+  }
+
+  .role-btn {
+    font-size: 12px;
+  }
+}
