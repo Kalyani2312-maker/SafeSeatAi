@@ -11,7 +11,9 @@ function DriverDashboard() {
   // API CONFIGURATION
   // =========================================================
 
-  const API = import.meta.env.VITE_API_URL || "http://localhost:9091";
+  const API =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:8080";
   const BUS_ID = 1;
   const BUS_NUMBER = "MH12AB1001";
 
@@ -1709,104 +1711,91 @@ function DriverDashboard() {
         </div>
 
         {/* ===================================================
-            STUDENT QR CODES
-        =================================================== */}
+    STUDENT QR CODES
+=================================================== */}
 
-        <div className="dashboard-card">
+<div className="dashboard-card">
 
-          <div className="card-header">
+  <div className="card-header">
 
-            <div className="card-icon">
-              🔳
-            </div>
+    <div className="card-icon">
+      🔳
+    </div>
 
-            <div>
-              <h3>Student QR Codes</h3>
+    <div>
+      <h3>Student QR Codes</h3>
 
-              <span className="card-small-text">
-                Registered student QR codes
-              </span>
-            </div>
+      <span className="card-small-text">
+        Registered student QR codes
+      </span>
+    </div>
 
-          </div>
+  </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: "20px",
-              marginTop: "20px",
-            }}
-          >
+  {studentsLoading ? (
+    <div className="status-warning full-status">
+      ⏳ Loading student QR codes...
+    </div>
+  ) : students.length === 0 ? (
+    <div className="status-danger full-status">
+      ⚠️ No active students found for this bus.
+    </div>
+  ) : (
 
-            <div
-              style={{
-                textAlign: "center",
-                padding: "15px",
-                border:
-                  "1px solid #e2e8f0",
-                borderRadius: "12px",
-                background: "#fff",
-              }}
-            >
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns:
+          "repeat(auto-fit, minmax(180px, 1fr))",
+        gap: "20px",
+        marginTop: "20px",
+      }}
+    >
 
-              <QRCodeCanvas
-                value="S003"
-                size={160}
-                level="H"
-                includeMargin={true}
-              />
+      {students.map((student) => (
 
-              <h4>Rohan More</h4>
+        <div
+          key={student.id}
+          style={{
+            textAlign: "center",
+            padding: "15px",
+            border: "1px solid #e2e8f0",
+            borderRadius: "12px",
+            background: "#fff",
+          }}
+        >
 
-              <p>
-                Student ID:{" "}
-                <strong>S003</strong>
-              </p>
+          <QRCodeCanvas
+            value={student.rollNo}
+            size={160}
+            level="H"
+            includeMargin={true}
+          />
 
-              <small>
-                Scan this QR in Driver
-                Dashboard
-              </small>
+          <h4>
+            {student.studentName}
+          </h4>
 
-            </div>
+          <p>
+            Student ID:{" "}
+            <strong>
+              {student.rollNo}
+            </strong>
+          </p>
 
-            <div
-              style={{
-                textAlign: "center",
-                padding: "15px",
-                border:
-                  "1px solid #e2e8f0",
-                borderRadius: "12px",
-                background: "#fff",
-              }}
-            >
-
-              <QRCodeCanvas
-                value="S004"
-                size={160}
-                level="H"
-                includeMargin={true}
-              />
-
-              <h4>Riya Jadhav</h4>
-
-              <p>
-                Student ID:{" "}
-                <strong>S004</strong>
-              </p>
-
-              <small>
-                Scan this QR in Driver
-                Dashboard
-              </small>
-
-            </div>
-
-          </div>
+          <small>
+            Scan this QR in Driver Dashboard
+          </small>
 
         </div>
+
+      ))}
+
+    </div>
+
+  )}
+
+</div>
 
         {/* ===================================================
             STUDENTS

@@ -1,0 +1,152 @@
+.student-page {
+  min-height: 100vh;
+  background: #f4f7fb;
+  padding: 40px 20px;
+}
+
+.student-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.student-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.student-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+}
+
+.student-header h1 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.student-header p {
+  margin: 5px 0 0;
+  color: #64748b;
+}
+
+.student-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.student-card {
+  background: white;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.student-card h2 {
+  margin-top: 0;
+  margin-bottom: 22px;
+}
+
+.student-card label {
+  display: block;
+  font-weight: 600;
+  margin: 14px 0 7px;
+}
+
+.student-card input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 14px;
+  border: 1px solid #dbe3ee;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+}
+
+.student-card input:focus {
+  border-color: #2563eb;
+}
+
+.save-student-btn,
+.download-qr-btn {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 22px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.save-student-btn {
+  background: #2563eb;
+  color: white;
+}
+
+.download-qr-btn {
+  background: #0f172a;
+  color: white;
+}
+
+.student-message {
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #166534;
+  font-weight: 600;
+}
+
+.qr-card {
+  text-align: center;
+}
+
+.qr-empty {
+  padding: 50px 20px;
+  color: #64748b;
+}
+
+.qr-empty-icon {
+  font-size: 60px;
+  margin-bottom: 15px;
+}
+
+.student-preview {
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+
+.student-preview h3 {
+  margin-bottom: 10px;
+  font-size: 22px;
+}
+
+.student-preview p {
+  margin: 4px 0;
+}
+
+.qr-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.qr-data {
+  color: #64748b;
+}
+
+@media (max-width: 800px) {
+  .student-grid {
+    grid-template-columns: 1fr;
+  }
+}

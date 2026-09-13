@@ -14,8 +14,9 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./ParentDashboard.css";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:9091";
-
+const API =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:8080";
 // =====================================================
 // BUS ICON
 // =====================================================

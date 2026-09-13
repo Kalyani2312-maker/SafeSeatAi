@@ -7,6 +7,7 @@ import Register from "./pages/Register";
 import ParentDashboard from "./pages/ParentDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Student from "./pages/Student";
 
 // Components folder
 import Features from "./components/Features";
@@ -26,10 +27,8 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/dashboard" element={<Dashboard />} />
 
-        {/* Login */}
+        {/* Authentication */}
         <Route path="/login" element={<Login />} />
-
-        {/* Register */}
         <Route path="/register" element={<Register />} />
 
         {/* User Dashboards */}
@@ -46,6 +45,12 @@ function App() {
         <Route
           path="/admin-dashboard"
           element={<AdminDashboard />}
+        />
+
+        {/* Student Management / QR */}
+        <Route
+          path="/student"
+          element={<Student />}
         />
 
         {/* Unknown URL */}

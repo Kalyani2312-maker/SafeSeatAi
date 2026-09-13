@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import "./AdminDashboard.css";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:9091";
-
+const API =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:8080";
 function AdminDashboard() {
   const [students, setStudents] = useState([]);
   const [buses, setBuses] = useState([]);
