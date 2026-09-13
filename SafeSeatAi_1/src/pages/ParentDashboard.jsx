@@ -336,9 +336,11 @@ if (alertResponse.ok) {
           err
         );
 
-        setError(
-          "Unable to connect with SafeSeat AI backend."
-        );
+       setError(
+  `Backend request failed: ${
+    err?.message || "Unknown error"
+  }`
+);
       } finally {
         setLoading(false);
       }
