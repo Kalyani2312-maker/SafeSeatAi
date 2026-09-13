@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Register.css";
 
+const API = import.meta.env.VITE_API_URL || "http://localhost:9091";
+
 function Register() {
   const navigate = useNavigate();
 
@@ -34,16 +36,13 @@ function Register() {
       setLoading(true);
       setMessage("");
 
-      const response = await fetch(
-        "http://localhost:9091/api/users/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      const response = await fetch(`${API}/api/users/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
       if (!response.ok) {
         throw new Error("Registration failed");
@@ -58,11 +57,11 @@ function Register() {
       setTimeout(() => {
         navigate("/login");
       }, 1200);
-
     } catch (error) {
-      console.error(error);
+      console.error("Registration Error:", error);
+
       setMessage(
-        "❌ Registration failed. Please check if Eclipse backend is running."
+        "❌ Registration failed. Please check your connection and try again."
       );
     } finally {
       setLoading(false);
@@ -71,7 +70,6 @@ function Register() {
 
   return (
     <div className="register-page">
-
       <div className="register-card">
 
         <div className="register-icon">🛡️</div>
@@ -127,7 +125,9 @@ function Register() {
           </select>
 
           <button type="submit" disabled={loading}>
-            {loading ? "Creating Account..." : "Create Account →"}
+            {loading
+              ? "Creating Account..."
+              : "Create Account →"}
           </button>
 
         </form>
@@ -153,7 +153,6 @@ function Register() {
         </p>
 
       </div>
-
     </div>
   );
 }
