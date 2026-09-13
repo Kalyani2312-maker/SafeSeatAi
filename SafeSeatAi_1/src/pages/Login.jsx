@@ -50,21 +50,20 @@ export default function Login() {
     setError("");
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/users/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
-
+  const response = await fetch(
+    `${API}/api/users/login`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    }
+  );
       let data = {};
 
       try {
