@@ -11,7 +11,7 @@ function DriverDashboard() {
   // API CONFIGURATION
   // =========================================================
 
-  const API = "http://localhost:9091";
+  const API = import.meta.env.VITE_API_URL || "http://localhost:9091";
   const BUS_ID = 1;
   const BUS_NUMBER = "MH12AB1001";
 
