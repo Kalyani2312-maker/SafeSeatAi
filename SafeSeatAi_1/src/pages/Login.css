@@ -866,3 +866,24 @@
     display: none;
   }
 }
+.register-link {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.register-link p {
+  margin: 0;
+}
+
+.register-link span {
+  color: #2563eb;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.register-link span:hover {
+  text-decoration: underline;
+}

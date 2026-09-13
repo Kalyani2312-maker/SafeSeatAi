@@ -50,20 +50,18 @@ export default function Login() {
     setError("");
 
     try {
-  const response = await fetch(
-    `${API}/api/users/login`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        password,
-      }),
-    }
-  );
+      const response = await fetch(`${API}/api/users/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
       let data = {};
 
       try {
@@ -89,10 +87,7 @@ export default function Login() {
       console.log("SafeSeat AI User:", user);
 
       // Save user
-      localStorage.setItem(
-        "user",
-        JSON.stringify(user)
-      );
+      localStorage.setItem("user", JSON.stringify(user));
 
       // Save token if available
       const token = data.token || user.token;
@@ -103,10 +98,7 @@ export default function Login() {
 
       // Remember me
       if (rememberMe) {
-        localStorage.setItem(
-          "rememberMe",
-          "true"
-        );
+        localStorage.setItem("rememberMe", "true");
       } else {
         localStorage.removeItem("rememberMe");
       }
@@ -117,7 +109,9 @@ export default function Login() {
           user.userRole ||
           user.type ||
           ""
-      ).toLowerCase();
+      )
+        .trim()
+        .toLowerCase();
 
       console.log("SafeSeat AI Role:", role);
 
@@ -163,7 +157,7 @@ export default function Login() {
         err.message === "Failed to fetch"
       ) {
         setError(
-          "Unable to connect to SafeSeat AI server. Please make sure the backend is running on port 8080."
+          "Unable to connect to SafeSeat AI server. Please try again."
         );
       } else {
         setError(
@@ -581,6 +575,21 @@ export default function Login() {
               Contact Support
             </button>
 
+          </div>
+
+
+          {/* REGISTER LINK */}
+          <div className="register-link">
+            <p>
+              Don't have an account?
+              <span
+                onClick={() =>
+                  navigate("/register")
+                }
+              >
+                {" "}Create Account
+              </span>
+            </p>
           </div>
 
 
