@@ -5,7 +5,7 @@ import "./Student.css";
 // Local Spring Boot backend
 const API =
   import.meta.env.VITE_API_URL ||
-  "http://localhost:8080";
+  "http://localhost:9091";
 
 function Student() {
   const [student, setStudent] = useState({
@@ -127,7 +127,7 @@ function Student() {
         error.message === "Failed to fetch"
       ) {
         setMessage(
-          "❌ Failed to fetch. Make sure Spring Boot is running on http://localhost:8080."
+          "❌ Failed to fetch. Make sure Spring Boot is running on http://localhost:9091."
         );
       } else {
         setMessage(

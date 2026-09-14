@@ -1,352 +1,389 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
 
-const API =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:9091";
-export default function Login() {
+function Login() {
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  const API =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:9091";
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("PARENT");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (error) {
-      setError("");
-    }
-  };
-
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
-    const email = form.email.trim();
-    const password = form.password;
+    setError("");
 
-    if (!email || !password) {
-      setError("Please enter your email and password.");
+    if (!email.trim()) {
+      setError("Please enter your email address.");
       return;
     }
 
-    if (!email.includes("@")) {
-      setError("Please enter a valid email address.");
+    if (!password) {
+      setError("Please enter your password.");
       return;
     }
 
     setLoading(true);
-    setError("");
 
     try {
       const response = await fetch(`${API}/api/users/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",
         },
         body: JSON.stringify({
-          email,
-          password,
+          email: email.trim(),
+          password: password,
         }),
       });
 
-      let data = {};
+      const contentType =
+        response.headers.get("content-type") || "";
 
-      try {
+      let data;
+
+      if (contentType.includes("application/json")) {
         data = await response.json();
-      } catch {
-        data = {};
+      } else {
+        data = await response.text();
       }
+
+      console.log("LOGIN RESPONSE:", data);
 
       if (!response.ok) {
-        throw new Error(
-          data.message ||
-            data.error ||
-            "Invalid email or password."
-        );
+        const message =
+          typeof data === "string"
+            ? data
+            : data?.message || "Invalid email or password.";
+
+        throw new Error(message);
       }
 
-      const user = data.user || data;
+      // -----------------------------------------
+      // USER ROLE
+      // -----------------------------------------
 
-      if (!user) {
-        throw new Error("Invalid response from server.");
-      }
-
-      console.log("SafeSeat AI User:", user);
-
-      // Save user
-      localStorage.setItem("user", JSON.stringify(user));
-
-      // Save token if available
-      const token = data.token || user.token;
-
-      if (token) {
-        localStorage.setItem("token", token);
-      }
-
-      // Remember me
-      if (rememberMe) {
-        localStorage.setItem("rememberMe", "true");
-      } else {
-        localStorage.removeItem("rememberMe");
-      }
-
-      // Get role
-      const role = String(
-        user.role ||
-          user.userRole ||
-          user.type ||
-          ""
+      const userRole = String(
+        data?.role || role || ""
       )
         .trim()
-        .toLowerCase();
+        .toUpperCase();
 
-      console.log("SafeSeat AI Role:", role);
+      console.log("LOGIN USER:", data);
+      console.log("LOGIN ROLE:", userRole);
 
-      // Role-based dashboard
-      switch (role) {
-        case "admin":
-          navigate("/admin-dashboard", {
-            replace: true,
-          });
-          break;
+      // -----------------------------------------
+      // SAVE USER
+      // -----------------------------------------
 
-        case "driver":
-          navigate("/driver-dashboard", {
-            replace: true,
-          });
-          break;
-
-        case "parent":
-          navigate("/parent-dashboard", {
-            replace: true,
-          });
-          break;
-
-        case "student":
-          setError(
-            "Student dashboard is not configured yet."
-          );
-          break;
-
-        default:
-          setError(
-            "Login successful, but your account role is not configured."
-          );
-      }
-    } catch (err) {
-      console.error(
-        "SafeSeat AI Login Error:",
-        err
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data)
       );
 
-      if (
-        err instanceof TypeError ||
-        err.message === "Failed to fetch"
-      ) {
-        setError(
-          "Unable to connect to SafeSeat AI server. Please try again."
-        );
-      } else {
-        setError(
-          err.message ||
-            "Login failed. Please try again."
+      localStorage.setItem(
+        "safeSeatUser",
+        JSON.stringify(data)
+      );
+
+      localStorage.setItem(
+        "userRole",
+        userRole
+      );
+
+      // -----------------------------------------
+      // ROLE VALIDATION
+      // -----------------------------------------
+
+      if (!userRole) {
+        throw new Error(
+          "User role is missing. Please contact administrator."
         );
       }
+
+      // User-selected role and database role
+      // should match.
+      const selectedRole = String(role)
+        .trim()
+        .toUpperCase();
+
+      if (selectedRole !== userRole) {
+        setError(
+          `You selected ${selectedRole}, but this account is registered as ${userRole}.`
+        );
+
+        localStorage.removeItem("user");
+        localStorage.removeItem("safeSeatUser");
+        localStorage.removeItem("userRole");
+
+        return;
+      }
+
+      // -----------------------------------------
+      // REDIRECT BASED ON REAL DATABASE ROLE
+      // -----------------------------------------
+
+      if (userRole === "PARENT") {
+        navigate("/parent-dashboard");
+        return;
+      }
+
+      if (userRole === "DRIVER") {
+        navigate("/driver-dashboard");
+        return;
+      }
+
+      if (userRole === "ADMIN") {
+        navigate("/admin-dashboard");
+        return;
+      }
+
+      setError(
+        "Invalid user role. Please contact administrator."
+      );
+
+    } catch (error) {
+      console.error("LOGIN ERROR:", error);
+
+      setError(
+        error.message ||
+          "Login failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleForgotPassword = () => {
-    alert(
-      "Please contact your school administrator to reset your password."
-    );
-  };
-
-  const handleSupport = () => {
-    alert(
-      "Please contact your school administrator for assistance."
-    );
-  };
-
   return (
-    <main className="login-page">
+    <div className="login-page">
 
-      {/* LEFT BRANDING */}
-      <section className="login-brand">
-        <div className="brand-content">
+      {/* =========================================
+          LEFT SIDE
+      ========================================= */}
 
-          <div className="brand-logo">
-            <span className="logo-shield">
-              🛡️
-            </span>
+      <div className="login-left">
+
+        <div className="login-brand">
+          <div className="brand-icon">
+            🛡️
           </div>
 
-          <p className="brand-label">
-            SCHOOL BUS SAFETY SYSTEM
-          </p>
+          <div>
+            <h1>SafeSeat AI</h1>
 
-          <h1>SafeSeat AI</h1>
-
-          <div className="system-status">
-            <span className="status-dot"></span>
-            SYSTEM ONLINE
+            <p>
+              Intelligent School Bus Safety
+            </p>
           </div>
+        </div>
 
-          <p className="brand-tagline">
-            Every Child. Every Journey.
+        <div className="login-left-content">
+
+          <span className="login-badge">
+            SMART SCHOOL TRANSPORT
+          </span>
+
+          <h2>
+            Every Child.
             <br />
-            <strong>Always Safe.</strong>
+            Every Journey.
+            <br />
+            <span>Always Safe.</span>
+          </h2>
+
+          <p>
+            SafeSeat AI provides intelligent child
+            safety monitoring, QR attendance, live
+            journey tracking and emergency alerts
+            for schools, parents and drivers.
           </p>
 
-          <p className="brand-description">
-            Intelligent school transportation
-            technology designed to keep students
-            safe before, during and after every
-            journey.
-          </p>
+          <div className="login-features">
 
-          <div className="brand-features">
-
-            <div className="feature-item">
-              <span className="feature-check">
-                ✓
-              </span>
-
+            <div className="login-feature">
+              <span>✓</span>
               <div>
-                <strong>
-                  Smart Safety Monitoring
-                </strong>
-
+                <strong>QR Attendance</strong>
                 <small>
-                  Real-time journey protection
+                  Secure student boarding verification
                 </small>
               </div>
             </div>
 
-            <div className="feature-item">
-              <span className="feature-check">
-                ✓
-              </span>
-
+            <div className="login-feature">
+              <span>✓</span>
               <div>
-                <strong>
-                  QR Attendance
-                </strong>
-
+                <strong>Live GPS Tracking</strong>
                 <small>
-                  Secure student boarding
+                  Monitor school bus journeys
                 </small>
               </div>
             </div>
 
-            <div className="feature-item">
-              <span className="feature-check">
-                ✓
-              </span>
-
+            <div className="login-feature">
+              <span>✓</span>
               <div>
-                <strong>
-                  Live GPS & Emergency SOS
-                </strong>
-
+                <strong>Emergency Alerts</strong>
                 <small>
-                  Complete journey visibility
+                  Instant parent and teacher notification
                 </small>
               </div>
             </div>
 
           </div>
-
-          <div className="brand-security">
-            <span>🔐</span>
-
-            <div>
-              <strong>
-                Secure Platform
-              </strong>
-
-              <small>
-                Protected school transportation
-                system
-              </small>
-            </div>
-          </div>
-
         </div>
 
-        <div className="brand-footer">
-          © {new Date().getFullYear()} SafeSeat AI
+        <div className="login-left-footer">
+          © 2026 SafeSeat AI · Child Safety Network
         </div>
-      </section>
+
+      </div>
 
 
-      {/* LOGIN SECTION */}
-      <section className="login-section">
+      {/* =========================================
+          RIGHT SIDE
+      ========================================= */}
+
+      <div className="login-right">
 
         <div className="login-card">
 
-          {/* MOBILE LOGO */}
-          <div className="mobile-logo">
+          <div className="login-header">
 
-            <div className="mobile-logo-icon">
+            <div className="mobile-brand-icon">
               🛡️
             </div>
 
-            <div>
-              <strong>
-                SafeSeat AI
-              </strong>
+            <h2>
+              Welcome Back
+            </h2>
 
-              <small>
-                SCHOOL BUS SAFETY
-              </small>
+            <p>
+              Login to your SafeSeat AI account
+            </p>
+
+          </div>
+
+
+          {/* =====================================
+              ERROR MESSAGE
+          ===================================== */}
+
+          {error && (
+            <div className="login-error">
+              <span>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+
+          {/* =====================================
+              ROLE SELECTOR
+          ===================================== */}
+
+          <div className="role-section">
+
+            <label>
+              Login As
+            </label>
+
+            <div className="role-buttons">
+
+              {/* PARENT */}
+
+              <button
+                type="button"
+                className={
+                  role === "PARENT"
+                    ? "role-btn active"
+                    : "role-btn"
+                }
+                onClick={() => {
+                  setRole("PARENT");
+                  setError("");
+                }}
+              >
+                <span className="role-icon">
+                  👨‍👩‍👧
+                </span>
+
+                <span>
+                  Parent
+                </span>
+              </button>
+
+
+              {/* DRIVER */}
+
+              <button
+                type="button"
+                className={
+                  role === "DRIVER"
+                    ? "role-btn active"
+                    : "role-btn"
+                }
+                onClick={() => {
+                  setRole("DRIVER");
+                  setError("");
+                }}
+              >
+                <span className="role-icon">
+                  🚌
+                </span>
+
+                <span>
+                  Driver
+                </span>
+              </button>
+
+
+              {/* ADMIN */}
+
+              <button
+                type="button"
+                className={
+                  role === "ADMIN"
+                    ? "role-btn active"
+                    : "role-btn"
+                }
+                onClick={() => {
+                  setRole("ADMIN");
+                  setError("");
+                }}
+              >
+                <span className="role-icon">
+                  🛡️
+                </span>
+
+                <span>
+                  Admin
+                </span>
+              </button>
+
             </div>
 
           </div>
 
 
-          {/* HEADER */}
-          <header className="login-header">
+          {/* =====================================
+              LOGIN FORM
+          ===================================== */}
 
-            <p className="welcome-text">
-              SECURE ACCESS
-            </p>
-
-            <h2>
-              Welcome back
-            </h2>
-
-            <p>
-              Sign in to access your SafeSeat AI
-              dashboard and manage school bus
-              safety.
-            </p>
-
-          </header>
-
-
-          {/* LOGIN FORM */}
           <form
-            onSubmit={handleSubmit}
-            noValidate
+            onSubmit={handleLogin}
+            className="login-form"
           >
 
             {/* EMAIL */}
+
             <div className="form-group">
 
               <label htmlFor="email">
@@ -355,23 +392,20 @@ export default function Login() {
 
               <div className="input-wrapper">
 
-                <span
-                  className="input-icon"
-                  aria-hidden="true"
-                >
-                  ✉
+                <span className="input-icon">
+                  ✉️
                 </span>
 
                 <input
                   id="email"
-                  name="email"
                   type="email"
                   placeholder="Enter your email"
-                  value={form.email}
-                  onChange={handleChange}
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError("");
+                  }}
                   autoComplete="email"
-                  disabled={loading}
-                  required
                 />
 
               </div>
@@ -380,6 +414,7 @@ export default function Login() {
 
 
             {/* PASSWORD */}
+
             <div className="form-group">
 
               <div className="password-label-row">
@@ -390,137 +425,60 @@ export default function Login() {
 
                 <button
                   type="button"
-                  className="forgot-button"
-                  onClick={handleForgotPassword}
-                  disabled={loading}
+                  className="forgot-password"
+                  onClick={() =>
+                    setError(
+                      "Please contact the SafeSeat administrator to reset your password."
+                    )
+                  }
                 >
-                  Forgot password?
+                  Forgot Password?
                 </button>
 
               </div>
 
               <div className="input-wrapper">
 
-                <span
-                  className="input-icon"
-                  aria-hidden="true"
-                >
+                <span className="input-icon">
                   🔒
                 </span>
 
                 <input
                   id="password"
-                  name="password"
-                  type={
-                    showPassword
-                      ? "text"
-                      : "password"
-                  }
+                  type="password"
                   placeholder="Enter your password"
-                  value={form.password}
-                  onChange={handleChange}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError("");
+                  }}
                   autoComplete="current-password"
-                  disabled={loading}
-                  required
                 />
-
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() =>
-                    setShowPassword(
-                      (prev) => !prev
-                    )
-                  }
-                  disabled={loading}
-                  aria-label={
-                    showPassword
-                      ? "Hide password"
-                      : "Show password"
-                  }
-                >
-                  {showPassword
-                    ? "🙈"
-                    : "👁️"}
-                </button>
 
               </div>
 
             </div>
 
 
-            {/* ERROR */}
-            {error && (
-              <div
-                className="login-error"
-                role="alert"
-              >
-                <span className="error-icon">
-                  !
-                </span>
+            {/* =================================
+                LOGIN BUTTON
+            ================================= */}
 
-                <div>
-                  <strong>
-                    Login failed
-                  </strong>
-
-                  <p>
-                    {error}
-                  </p>
-                </div>
-              </div>
-            )}
-
-
-            {/* REMEMBER ME */}
-            <div className="remember-row">
-
-              <label className="remember-label">
-
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) =>
-                    setRememberMe(
-                      e.target.checked
-                    )
-                  }
-                  disabled={loading}
-                />
-
-                <span>
-                  Remember me
-                </span>
-
-              </label>
-
-            </div>
-
-
-            {/* LOGIN BUTTON */}
             <button
               type="submit"
-              className="login-button"
+              className="login-submit"
               disabled={loading}
             >
 
               {loading ? (
                 <>
                   <span className="spinner"></span>
-
-                  <span>
-                    Signing in...
-                  </span>
+                  Logging in...
                 </>
               ) : (
                 <>
-                  <span>
-                    Sign in securely
-                  </span>
-
-                  <span className="arrow">
-                    →
-                  </span>
+                  Login as {role}
+                  <span>→</span>
                 </>
               )}
 
@@ -529,92 +487,50 @@ export default function Login() {
           </form>
 
 
-          {/* SECURITY DIVIDER */}
-          <div className="login-divider">
+          {/* =====================================
+              REGISTER
+          ===================================== */}
+
+          <div className="register-section">
+
             <span>
-              SAFESEAT AI SECURITY
+              Don't have an account?
             </span>
+
+            <Link to="/register">
+              Create Account
+            </Link>
+
           </div>
 
 
-          {/* SECURITY MESSAGE */}
+          {/* =====================================
+              SECURITY
+          ===================================== */}
+
           <div className="security-note">
 
-            <div className="security-icon">
-              🛡️
-            </div>
+            <span>🔐</span>
 
             <div>
-
               <strong>
-                Your safety matters
+                Secure Access
               </strong>
 
-              <p>
-                Your account information is
-                protected through secure
-                authentication.
-              </p>
-
+              <small>
+                Your account is protected by
+                SafeSeat AI security.
+              </small>
             </div>
-
-          </div>
-
-
-          {/* SUPPORT */}
-          <div className="login-footer">
-
-            <p>
-              Need help accessing your account?
-            </p>
-
-            <button
-              type="button"
-              onClick={handleSupport}
-              disabled={loading}
-            >
-              Contact Support
-            </button>
-
-          </div>
-
-
-          {/* REGISTER LINK */}
-          <div className="register-link">
-            <p>
-              Don't have an account?
-              <span
-                onClick={() =>
-                  navigate("/register")
-                }
-              >
-                {" "}Create Account
-              </span>
-            </p>
-          </div>
-
-
-          {/* MINI BRANDING */}
-          <div className="login-brand-mini">
-
-            <span>🛡️</span>
-
-            <strong>
-              SafeSeat AI
-            </strong>
-
-            <span>•</span>
-
-            <small>
-              Intelligent School Bus Safety
-            </small>
 
           </div>
 
         </div>
 
-      </section>
+      </div>
 
-    </main>
+    </div>
   );
 }
+
+export default Login;

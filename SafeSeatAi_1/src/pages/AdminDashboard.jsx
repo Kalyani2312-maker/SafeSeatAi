@@ -5,6 +5,7 @@ import "./AdminDashboard.css";
 const API =
   import.meta.env.VITE_API_URL ||
   "http://localhost:9091";
+
 function AdminDashboard() {
   const [students, setStudents] = useState([]);
   const [buses, setBuses] = useState([]);
@@ -21,13 +22,12 @@ function AdminDashboard() {
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("ALL");
 
-  // =========================
+  // =========================================================
   // FORMS
-  // =========================
+  // =========================================================
 
   const [studentForm, setStudentForm] = useState({
     studentName: "",
-    rollNo: "",
     className: "",
     parentId: "",
     busId: "",
@@ -53,18 +53,18 @@ function AdminDashboard() {
     mobileNumber: "",
   });
 
-  // =========================
+  // =========================================================
   // EDITING
-  // =========================
+  // =========================================================
 
   const [editingStudent, setEditingStudent] = useState(null);
   const [editingBus, setEditingBus] = useState(null);
   const [editingDriver, setEditingDriver] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
 
-  // =========================
+  // =========================================================
   // SHOW FORMS
-  // =========================
+  // =========================================================
 
   const [showStudentForm, setShowStudentForm] = useState(false);
   const [showBusForm, setShowBusForm] = useState(false);
@@ -84,6 +84,7 @@ function AdminDashboard() {
       }
 
       const data = await response.json();
+
       setStudents(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Students:", error);
@@ -103,6 +104,7 @@ function AdminDashboard() {
       }
 
       const data = await response.json();
+
       setBuses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Buses:", error);
@@ -122,6 +124,7 @@ function AdminDashboard() {
       }
 
       const data = await response.json();
+
       setDrivers(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Drivers:", error);
@@ -141,6 +144,7 @@ function AdminDashboard() {
       }
 
       const data = await response.json();
+
       setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Users:", error);
@@ -160,6 +164,7 @@ function AdminDashboard() {
       }
 
       const data = await response.json();
+
       setAlerts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Alerts:", error);
@@ -179,6 +184,7 @@ function AdminDashboard() {
       }
 
       const data = await response.json();
+
       setJourneys(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Journeys:", error);
@@ -200,6 +206,7 @@ function AdminDashboard() {
       }
 
       const data = await response.json();
+
       setLocations(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("GPS:", error);
@@ -213,17 +220,19 @@ function AdminDashboard() {
   const loadAllData = useCallback(async () => {
     setLoading(true);
 
-    await Promise.all([
-      loadStudents(),
-      loadBuses(),
-      loadDrivers(),
-      loadUsers(),
-      loadAlerts(),
-      loadJourneys(),
-      loadLocations(),
-    ]);
-
-    setLoading(false);
+    try {
+      await Promise.all([
+        loadStudents(),
+        loadBuses(),
+        loadDrivers(),
+        loadUsers(),
+        loadAlerts(),
+        loadJourneys(),
+        loadLocations(),
+      ]);
+    } finally {
+      setLoading(false);
+    }
   }, [
     loadStudents,
     loadBuses,
@@ -257,7 +266,7 @@ function AdminDashboard() {
   }, [alerts]);
 
   const filteredStudents = useMemo(() => {
-    const search = studentSearch.toLowerCase();
+    const search = studentSearch.toLowerCase().trim();
 
     return students.filter((student) => {
       return (
@@ -275,7 +284,7 @@ function AdminDashboard() {
   }, [students, studentSearch]);
 
   const filteredUsers = useMemo(() => {
-    const search = userSearch.toLowerCase();
+    const search = userSearch.toLowerCase().trim();
 
     return users.filter((user) => {
       const matchesSearch =
@@ -290,37 +299,64 @@ function AdminDashboard() {
 
       const matchesRole =
         userRoleFilter === "ALL" ||
-        String(user.role || "").toUpperCase() === userRoleFilter;
+        String(user.role || "").toUpperCase() ===
+          userRoleFilter;
 
       return matchesSearch && matchesRole;
     });
   }, [users, userSearch, userRoleFilter]);
 
   // =========================================================
-  // STUDENT
+  // STUDENT MANAGEMENT
   // =========================================================
 
   const handleStudentChange = (e) => {
-    setStudentForm({
-      ...studentForm,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+
+    setStudentForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
   };
 
   const saveStudent = async (e) => {
     e.preventDefault();
 
+    setMessage("");
+
+    if (!studentForm.studentName.trim()) {
+      setMessage("Please enter student name.");
+      return;
+    }
+
+    if (!studentForm.className.trim()) {
+      setMessage("Please enter student class.");
+      return;
+    }
+
+    if (!studentForm.parentId) {
+      setMessage("Please select a parent.");
+      return;
+    }
+
+    if (!studentForm.busId) {
+      setMessage("Please select a bus.");
+      return;
+    }
+
     try {
+      /*
+       * IMPORTANT:
+       * rollNo is NOT sent.
+       *
+       * Backend automatically creates:
+       * S001, S002, S003...
+       */
       const payload = {
-        studentName: studentForm.studentName,
-        rollNo: studentForm.rollNo,
-        className: studentForm.className,
-        parentId: studentForm.parentId
-          ? Number(studentForm.parentId)
-          : null,
-        busId: studentForm.busId
-          ? Number(studentForm.busId)
-          : null,
+        studentName: studentForm.studentName.trim(),
+        className: studentForm.className.trim(),
+        parentId: Number(studentForm.parentId),
+        busId: Number(studentForm.busId),
       };
 
       const url = editingStudent
@@ -336,19 +372,41 @@ function AdminDashboard() {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+
+        console.error(
+          "Student API Error:",
+          errorText
+        );
+
         throw new Error("Student save failed");
       }
+
+      const savedStudent = await response.json();
+
+      console.log(
+        "Student saved successfully:",
+        savedStudent
+      );
 
       setMessage(
         editingStudent
           ? "Student updated successfully."
-          : "Student added successfully."
+          : `Student added successfully. Student ID: ${
+              savedStudent.rollNo ||
+              `S${String(savedStudent.id).padStart(3, "0")}`
+            }`
       );
 
       resetStudentForm();
+
       await loadStudents();
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Save Student Error:",
+        error
+      );
+
       setMessage("Failed to save student.");
     }
   };
@@ -358,17 +416,22 @@ function AdminDashboard() {
 
     setStudentForm({
       studentName: student.studentName || "",
-      rollNo: student.rollNo || "",
       className: student.className || "",
-      parentId: student.parentId || "",
-      busId: student.busId || "",
+      parentId: student.parentId
+        ? String(student.parentId)
+        : "",
+      busId: student.busId
+        ? String(student.busId)
+        : "",
     });
 
     setShowStudentForm(true);
   };
 
   const deleteStudent = async (id) => {
-    if (!window.confirm("Delete this student?")) return;
+    if (!window.confirm("Delete this student?")) {
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -382,10 +445,17 @@ function AdminDashboard() {
         throw new Error("Delete failed");
       }
 
-      setMessage("Student deleted successfully.");
+      setMessage(
+        "Student deleted successfully."
+      );
+
       await loadStudents();
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Delete Student Error:",
+        error
+      );
+
       setMessage("Failed to delete student.");
     }
   };
@@ -393,7 +463,6 @@ function AdminDashboard() {
   const resetStudentForm = () => {
     setStudentForm({
       studentName: "",
-      rollNo: "",
       className: "",
       parentId: "",
       busId: "",
@@ -404,7 +473,7 @@ function AdminDashboard() {
   };
 
   // =========================================================
-  // BUS
+  // BUS MANAGEMENT
   // =========================================================
 
   const handleBusChange = (e) => {
@@ -467,7 +536,9 @@ function AdminDashboard() {
   };
 
   const deleteBus = async (id) => {
-    if (!window.confirm("Delete this bus?")) return;
+    if (!window.confirm("Delete this bus?")) {
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -482,6 +553,7 @@ function AdminDashboard() {
       }
 
       setMessage("Bus deleted successfully.");
+
       await loadBuses();
     } catch (error) {
       console.error(error);
@@ -501,7 +573,7 @@ function AdminDashboard() {
   };
 
   // =========================================================
-  // DRIVER
+  // DRIVER MANAGEMENT
   // =========================================================
 
   const handleDriverChange = (e) => {
@@ -564,7 +636,9 @@ function AdminDashboard() {
   };
 
   const deleteDriver = async (id) => {
-    if (!window.confirm("Delete this driver?")) return;
+    if (!window.confirm("Delete this driver?")) {
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -578,11 +652,16 @@ function AdminDashboard() {
         throw new Error("Delete failed");
       }
 
-      setMessage("Driver deleted successfully.");
+      setMessage(
+        "Driver deleted successfully."
+      );
+
       await loadDrivers();
     } catch (error) {
       console.error(error);
-      setMessage("Failed to delete driver.");
+      setMessage(
+        "Failed to delete driver."
+      );
     }
   };
 
@@ -598,7 +677,7 @@ function AdminDashboard() {
   };
 
   // =========================================================
-  // USER
+  // USER MANAGEMENT
   // =========================================================
 
   const handleUserChange = (e) => {
@@ -612,7 +691,9 @@ function AdminDashboard() {
     e.preventDefault();
 
     if (!/^[0-9]{10}$/.test(userForm.mobileNumber)) {
-      setMessage("Enter a valid 10 digit mobile number.");
+      setMessage(
+        "Enter a valid 10 digit mobile number."
+      );
       return;
     }
 
@@ -673,7 +754,9 @@ function AdminDashboard() {
   };
 
   const deleteUser = async (id) => {
-    if (!window.confirm("Delete this user?")) return;
+    if (!window.confirm("Delete this user?")) {
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -687,7 +770,10 @@ function AdminDashboard() {
         throw new Error("Delete failed");
       }
 
-      setMessage("User deleted successfully.");
+      setMessage(
+        "User deleted successfully."
+      );
+
       await loadUsers();
     } catch (error) {
       console.error(error);
@@ -725,11 +811,16 @@ function AdminDashboard() {
         throw new Error("Resolve failed");
       }
 
-      setMessage(`Alert #${id} resolved successfully.`);
+      setMessage(
+        `Alert #${id} resolved successfully.`
+      );
+
       await loadAlerts();
     } catch (error) {
       console.error(error);
-      setMessage("Failed to resolve alert.");
+      setMessage(
+        "Failed to resolve alert."
+      );
     }
   };
 
@@ -738,7 +829,13 @@ function AdminDashboard() {
   // =========================================================
 
   const deleteJourney = async (id) => {
-    if (!window.confirm("Delete this journey history?")) return;
+    if (
+      !window.confirm(
+        "Delete this journey history?"
+      )
+    ) {
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -753,10 +850,13 @@ function AdminDashboard() {
       }
 
       setMessage("Journey deleted.");
+
       await loadJourneys();
     } catch (error) {
       console.error(error);
-      setMessage("Failed to delete journey.");
+      setMessage(
+        "Failed to delete journey."
+      );
     }
   };
 
@@ -767,6 +867,7 @@ function AdminDashboard() {
   const logout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("role");
+
     window.location.href = "/login";
   };
 
@@ -777,21 +878,33 @@ function AdminDashboard() {
   return (
     <div className="admin-dashboard">
 
-      {/* ================= NAVBAR ================= */}
+      {/* =====================================================
+          NAVBAR
+      ===================================================== */}
 
       <nav className="admin-navbar">
 
         <div className="admin-brand">
-          <div className="brand-icon">🛡️</div>
+
+          <div className="brand-icon">
+            🛡️
+          </div>
 
           <div>
             <h2>SafeSeat AI</h2>
-            <span>Admin Control Center</span>
+
+            <span>
+              Admin Control Center
+            </span>
           </div>
+
         </div>
 
         <div className="nav-right">
-          <Link to="/">Home</Link>
+
+          <Link to="/">
+            Home
+          </Link>
 
           <button
             type="button"
@@ -799,25 +912,33 @@ function AdminDashboard() {
           >
             Logout
           </button>
+
         </div>
 
       </nav>
 
-      {/* ================= HEADER ================= */}
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
 
       <div className="admin-header">
 
         <div>
+
           <div className="dashboard-label">
             ADMIN CONTROL PANEL
           </div>
 
-          <h1>Admin Dashboard</h1>
+          <h1>
+            Admin Dashboard
+          </h1>
 
           <p>
-            Monitor students, buses, users, journeys,
-            safety alerts and emergency locations.
+            Monitor students, buses, users,
+            journeys, safety alerts and
+            emergency locations.
           </p>
+
         </div>
 
         <button
@@ -826,16 +947,23 @@ function AdminDashboard() {
           onClick={loadAllData}
           disabled={loading}
         >
-          {loading ? "Refreshing..." : "🔄 Refresh System"}
+          {loading
+            ? "Refreshing..."
+            : "🔄 Refresh System"}
         </button>
 
       </div>
 
-      {/* ================= MESSAGE ================= */}
+      {/* =====================================================
+          MESSAGE
+      ===================================================== */}
 
       {message && (
         <div className="dashboard-message">
-          <span>✓ {message}</span>
+
+          <span>
+            ✓ {message}
+          </span>
 
           <button
             type="button"
@@ -843,10 +971,13 @@ function AdminDashboard() {
           >
             ×
           </button>
+
         </div>
       )}
 
-      {/* ================= SYSTEM STATUS ================= */}
+      {/* =====================================================
+          SYSTEM STATUS
+      ===================================================== */}
 
       <div className="system-status-bar">
 
@@ -865,48 +996,100 @@ function AdminDashboard() {
 
       </div>
 
-      {/* ================= STATS ================= */}
+      {/* =====================================================
+          STATS
+      ===================================================== */}
 
       <div className="stats-grid">
 
         <div className="stat-card">
-          <div className="stat-icon">👨‍🎓</div>
-          <div>
-            <h3>{students.length}</h3>
-            <p>Students</p>
+
+          <div className="stat-icon">
+            👨‍🎓
           </div>
+
+          <div>
+            <h3>
+              {students.length}
+            </h3>
+
+            <p>
+              Students
+            </p>
+          </div>
+
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">🚌</div>
-          <div>
-            <h3>{buses.length}</h3>
-            <p>Buses</p>
+
+          <div className="stat-icon">
+            🚌
           </div>
+
+          <div>
+            <h3>
+              {buses.length}
+            </h3>
+
+            <p>
+              Buses
+            </p>
+          </div>
+
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">👨‍✈️</div>
-          <div>
-            <h3>{drivers.length}</h3>
-            <p>Drivers</p>
+
+          <div className="stat-icon">
+            👨‍✈️
           </div>
+
+          <div>
+            <h3>
+              {drivers.length}
+            </h3>
+
+            <p>
+              Drivers
+            </p>
+          </div>
+
         </div>
 
         <div className="stat-card alert-stat">
-          <div className="stat-icon">🚨</div>
-          <div>
-            <h3>{activeAlerts.length}</h3>
-            <p>Active Alerts</p>
+
+          <div className="stat-icon">
+            🚨
           </div>
+
+          <div>
+            <h3>
+              {activeAlerts.length}
+            </h3>
+
+            <p>
+              Active Alerts
+            </p>
+          </div>
+
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">👥</div>
-          <div>
-            <h3>{users.length}</h3>
-            <p>Users</p>
+
+          <div className="stat-icon">
+            👥
           </div>
+
+          <div>
+            <h3>
+              {users.length}
+            </h3>
+
+            <p>
+              Users
+            </p>
+          </div>
+
         </div>
 
       </div>
@@ -920,17 +1103,25 @@ function AdminDashboard() {
         <div className="card-header">
 
           <div>
-            <h2>👨‍🎓 Student Management</h2>
+
+            <h2>
+              👨‍🎓 Student Management
+            </h2>
+
             <p>
-              Register and manage students assigned to school buses.
+              Register and manage students
+              assigned to school buses.
             </p>
+
           </div>
 
           <button
             type="button"
             className="primary-btn"
             onClick={() =>
-              setShowStudentForm(!showStudentForm)
+              setShowStudentForm(
+                !showStudentForm
+              )
             }
           >
             {showStudentForm
@@ -940,51 +1131,178 @@ function AdminDashboard() {
 
         </div>
 
+        {/* =================================================
+            STUDENT FORM
+        ================================================= */}
+
         {showStudentForm && (
           <form
             className="management-form"
             onSubmit={saveStudent}
           >
 
+            {/* STUDENT NAME */}
+
             <input
               name="studentName"
               placeholder="Student Full Name"
-              value={studentForm.studentName}
-              onChange={handleStudentChange}
+              value={
+                studentForm.studentName
+              }
+              onChange={
+                handleStudentChange
+              }
               required
             />
 
+            {/* AUTOMATIC STUDENT ID */}
+
             <input
-              name="rollNo"
-              placeholder="Student ID / Roll No"
-              value={studentForm.rollNo}
-              onChange={handleStudentChange}
-              required
+              type="text"
+              value={
+                editingStudent
+                  ? students.find(
+                      (student) =>
+                        Number(student.id) ===
+                        Number(editingStudent)
+                    )?.rollNo ||
+                    `S${String(
+                      editingStudent
+                    ).padStart(3, "0")}`
+                  : "Automatic"
+              }
+              readOnly
+              disabled
+              placeholder="Student ID"
             />
+
+            {/* CLASS */}
 
             <input
               name="className"
               placeholder="Class"
-              value={studentForm.className}
-              onChange={handleStudentChange}
+              value={
+                studentForm.className
+              }
+              onChange={
+                handleStudentChange
+              }
               required
             />
 
-            <input
-              name="parentId"
-              type="number"
-              placeholder="Parent User ID"
-              value={studentForm.parentId}
-              onChange={handleStudentChange}
-            />
+            {/* PARENT */}
 
-            <input
+            <select
+              name="parentId"
+              value={
+                studentForm.parentId
+              }
+              onChange={
+                handleStudentChange
+              }
+              required
+            >
+
+              <option value="">
+                Select Parent
+              </option>
+
+              {users
+                .filter(
+                  (user) =>
+                    String(
+                      user.role || ""
+                    ).toUpperCase() ===
+                    "PARENT"
+                )
+                .map((parent) => (
+
+                  <option
+                    key={parent.id}
+                    value={parent.id}
+                  >
+                    {parent.name}
+                    {parent.email
+                      ? ` - ${parent.email}`
+                      : ""}
+                  </option>
+
+                ))}
+
+            </select>
+
+            {/* BUS */}
+
+            <select
               name="busId"
-              type="number"
-              placeholder="Bus ID"
-              value={studentForm.busId}
-              onChange={handleStudentChange}
-            />
+              value={
+                studentForm.busId
+              }
+              onChange={
+                handleStudentChange
+              }
+              required
+            >
+
+              <option value="">
+                Select Bus
+              </option>
+
+              {buses.map((bus) => (
+
+                <option
+                  key={bus.id}
+                  value={bus.id}
+                >
+                  {bus.busNumber}
+                  {bus.route
+                    ? ` - ${bus.route}`
+                    : ""}
+                </option>
+
+              ))}
+
+            </select>
+
+            {/* AUTOMATIC ASSIGNMENT */}
+
+            <div
+              style={{
+                gridColumn:
+                  "1 / -1",
+                padding:
+                  "12px 14px",
+                borderRadius:
+                  "10px",
+                background:
+                  "#f0f7ff",
+                border:
+                  "1px solid #d6e9ff",
+                color:
+                  "#24527a",
+                fontSize:
+                  "14px",
+              }}
+            >
+
+              <strong>
+                🔐 Automatic Assignment
+              </strong>
+
+              <div
+                style={{
+                  marginTop:
+                    "6px",
+                }}
+              >
+                Student ID, Parent ID
+                and Bus ID are assigned
+                automatically by SafeSeat AI.
+              </div>
+
+            </div>
+
+            {/* FORM BUTTONS */}
 
             <div className="form-actions">
 
@@ -1000,7 +1318,9 @@ function AdminDashboard() {
               <button
                 type="button"
                 className="secondary-btn"
-                onClick={resetStudentForm}
+                onClick={
+                  resetStudentForm
+                }
               >
                 Cancel
               </button>
@@ -1010,6 +1330,10 @@ function AdminDashboard() {
           </form>
         )}
 
+        {/* =================================================
+            STUDENT SEARCH
+        ================================================= */}
+
         <div className="table-toolbar">
 
           <input
@@ -1017,7 +1341,9 @@ function AdminDashboard() {
             placeholder="🔍 Search student..."
             value={studentSearch}
             onChange={(e) =>
-              setStudentSearch(e.target.value)
+              setStudentSearch(
+                e.target.value
+              )
             }
           />
 
@@ -1027,78 +1353,253 @@ function AdminDashboard() {
 
         </div>
 
+        {/* =================================================
+            STUDENT TABLE
+        ================================================= */}
+
         <div className="table-container">
 
           <table>
 
             <thead>
+
               <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Student ID</th>
-                <th>Class</th>
-                <th>Parent ID</th>
-                <th>Bus ID</th>
-                <th>Action</th>
+
+                <th>
+                  DB ID
+                </th>
+
+                <th>
+                  Student Name
+                </th>
+
+                <th>
+                  Student ID
+                </th>
+
+                <th>
+                  Class
+                </th>
+
+                <th>
+                  Parent
+                </th>
+
+                <th>
+                  Bus
+                </th>
+
+                <th>
+                  Status
+                </th>
+
+                <th>
+                  Action
+                </th>
+
               </tr>
+
             </thead>
 
             <tbody>
 
-              {filteredStudents.length === 0 ? (
+              {filteredStudents.length ===
+              0 ? (
+
                 <tr>
-                  <td colSpan="7">
+
+                  <td colSpan="8">
                     No students found.
                   </td>
+
                 </tr>
+
               ) : (
-                filteredStudents.map((student) => (
-                  <tr key={student.id}>
 
-                    <td>{student.id}</td>
+                filteredStudents.map(
+                  (student) => {
 
-                    <td className="strong-text">
-                      {student.studentName}
-                    </td>
+                    const studentDisplayId =
+                      student.rollNo ||
+                      `S${String(
+                        student.id
+                      ).padStart(3, "0")}`;
 
-                    <td>
-                      <span className="id-badge">
-                        {student.rollNo}
-                      </span>
-                    </td>
+                    const parent =
+                      users.find(
+                        (user) =>
+                          Number(user.id) ===
+                          Number(
+                            student.parentId
+                          )
+                      );
 
-                    <td>{student.className}</td>
+                    const bus =
+                      buses.find(
+                        (item) =>
+                          Number(item.id) ===
+                          Number(
+                            student.busId
+                          )
+                      );
 
-                    <td>{student.parentId || "-"}</td>
+                    const isActive =
+                      String(
+                        student.busStatus ||
+                          "ACTIVE"
+                      ).toUpperCase() ===
+                      "ACTIVE";
 
-                    <td>{student.busId || "-"}</td>
-
-                    <td className="action-cell">
-
-                      <button
-                        type="button"
-                        className="small-btn"
-                        onClick={() =>
-                          editStudent(student)
+                    return (
+                      <tr
+                        key={
+                          student.id
                         }
                       >
-                        Edit
-                      </button>
 
-                      <button
-                        type="button"
-                        className="small-btn danger"
-                        onClick={() =>
-                          deleteStudent(student.id)
-                        }
-                      >
-                        Delete
-                      </button>
+                        {/* DB ID */}
 
-                    </td>
+                        <td>
+                          {student.id}
+                        </td>
 
-                  </tr>
-                ))
+                        {/* NAME */}
+
+                        <td className="strong-text">
+                          {
+                            student.studentName
+                          }
+                        </td>
+
+                        {/* STUDENT ID */}
+
+                        <td>
+
+                          <span className="id-badge">
+                            {
+                              studentDisplayId
+                            }
+                          </span>
+
+                        </td>
+
+                        {/* CLASS */}
+
+                        <td>
+                          {
+                            student.className ||
+                            "-"
+                          }
+                        </td>
+
+                        {/* PARENT */}
+
+                        <td>
+
+                          {parent ? (
+
+                            <span>
+                              {
+                                parent.name
+                              }
+                            </span>
+
+                          ) : (
+
+                            <span
+                              style={{
+                                color:
+                                  "#999",
+                              }}
+                            >
+                              Not Assigned
+                            </span>
+
+                          )}
+
+                        </td>
+
+                        {/* BUS */}
+
+                        <td>
+
+                          {bus ? (
+
+                            <span className="bus-number">
+                              🚌{" "}
+                              {
+                                bus.busNumber
+                              }
+                            </span>
+
+                          ) : (
+
+                            <span
+                              style={{
+                                color:
+                                  "#999",
+                              }}
+                            >
+                              Not Assigned
+                            </span>
+
+                          )}
+
+                        </td>
+
+                        {/* STATUS */}
+
+                        <td>
+
+                          <span
+                            className={
+                              isActive
+                                ? "status-badge resolved-status"
+                                : "status-badge danger-status"
+                            }
+                          >
+                            {isActive
+                              ? "ACTIVE"
+                              : "INACTIVE"}
+                          </span>
+
+                        </td>
+
+                        {/* ACTION */}
+
+                        <td className="action-cell">
+
+                          <button
+                            type="button"
+                            className="small-btn"
+                            onClick={() =>
+                              editStudent(
+                                student
+                              )
+                            }
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            className="small-btn danger"
+                            onClick={() =>
+                              deleteStudent(
+                                student.id
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
+
+                        </td>
+
+                      </tr>
+                    );
+                  }
+                )
+
               )}
 
             </tbody>
@@ -1118,17 +1619,25 @@ function AdminDashboard() {
         <div className="card-header">
 
           <div>
-            <h2>🚌 Bus Management</h2>
+
+            <h2>
+              🚌 Bus Management
+            </h2>
+
             <p>
-              Manage school buses, drivers and routes.
+              Manage school buses,
+              drivers and routes.
             </p>
+
           </div>
 
           <button
             type="button"
             className="primary-btn"
             onClick={() =>
-              setShowBusForm(!showBusForm)
+              setShowBusForm(
+                !showBusForm
+              )
             }
           >
             {showBusForm
@@ -1147,23 +1656,35 @@ function AdminDashboard() {
             <input
               name="busNumber"
               placeholder="Bus Number"
-              value={busForm.busNumber}
-              onChange={handleBusChange}
+              value={
+                busForm.busNumber
+              }
+              onChange={
+                handleBusChange
+              }
               required
             />
 
             <input
               name="driverName"
               placeholder="Driver Name"
-              value={busForm.driverName}
-              onChange={handleBusChange}
+              value={
+                busForm.driverName
+              }
+              onChange={
+                handleBusChange
+              }
             />
 
             <input
               name="route"
               placeholder="School Route"
-              value={busForm.route}
-              onChange={handleBusChange}
+              value={
+                busForm.route
+              }
+              onChange={
+                handleBusChange
+              }
             />
 
             <div className="form-actions">
@@ -1180,7 +1701,9 @@ function AdminDashboard() {
               <button
                 type="button"
                 className="secondary-btn"
-                onClick={resetBusForm}
+                onClick={
+                  resetBusForm
+                }
               >
                 Cancel
               </button>
@@ -1195,6 +1718,7 @@ function AdminDashboard() {
           <table>
 
             <thead>
+
               <tr>
                 <th>ID</th>
                 <th>Bus Number</th>
@@ -1202,34 +1726,46 @@ function AdminDashboard() {
                 <th>Route</th>
                 <th>Action</th>
               </tr>
+
             </thead>
 
             <tbody>
 
               {buses.length === 0 ? (
+
                 <tr>
                   <td colSpan="5">
                     No buses found.
                   </td>
                 </tr>
+
               ) : (
+
                 buses.map((bus) => (
+
                   <tr key={bus.id}>
 
-                    <td>{bus.id}</td>
+                    <td>
+                      {bus.id}
+                    </td>
 
                     <td>
+
                       <span className="bus-number">
-                        🚌 {bus.busNumber}
+                        🚌{" "}
+                        {bus.busNumber}
                       </span>
+
                     </td>
 
                     <td>
-                      {bus.driverName || "-"}
+                      {bus.driverName ||
+                        "-"}
                     </td>
 
                     <td>
-                      {bus.route || "-"}
+                      {bus.route ||
+                        "-"}
                     </td>
 
                     <td className="action-cell">
@@ -1248,7 +1784,9 @@ function AdminDashboard() {
                         type="button"
                         className="small-btn danger"
                         onClick={() =>
-                          deleteBus(bus.id)
+                          deleteBus(
+                            bus.id
+                          )
                         }
                       >
                         Delete
@@ -1257,7 +1795,9 @@ function AdminDashboard() {
                     </td>
 
                   </tr>
+
                 ))
+
               )}
 
             </tbody>
@@ -1277,17 +1817,25 @@ function AdminDashboard() {
         <div className="card-header">
 
           <div>
-            <h2>👨‍✈️ Driver Management</h2>
+
+            <h2>
+              👨‍✈️ Driver Management
+            </h2>
+
             <p>
-              Manage driver contact and license information.
+              Manage driver contact
+              and license information.
             </p>
+
           </div>
 
           <button
             type="button"
             className="primary-btn"
             onClick={() =>
-              setShowDriverForm(!showDriverForm)
+              setShowDriverForm(
+                !showDriverForm
+              )
             }
           >
             {showDriverForm
@@ -1306,8 +1854,12 @@ function AdminDashboard() {
             <input
               name="driverName"
               placeholder="Driver Full Name"
-              value={driverForm.driverName}
-              onChange={handleDriverChange}
+              value={
+                driverForm.driverName
+              }
+              onChange={
+                handleDriverChange
+              }
               required
             />
 
@@ -1315,15 +1867,23 @@ function AdminDashboard() {
               name="phone"
               type="tel"
               placeholder="Phone Number"
-              value={driverForm.phone}
-              onChange={handleDriverChange}
+              value={
+                driverForm.phone
+              }
+              onChange={
+                handleDriverChange
+              }
             />
 
             <input
               name="licenseNumber"
               placeholder="Driving License Number"
-              value={driverForm.licenseNumber}
-              onChange={handleDriverChange}
+              value={
+                driverForm.licenseNumber
+              }
+              onChange={
+                handleDriverChange
+              }
             />
 
             <div className="form-actions">
@@ -1340,7 +1900,9 @@ function AdminDashboard() {
               <button
                 type="button"
                 className="secondary-btn"
-                onClick={resetDriverForm}
+                onClick={
+                  resetDriverForm
+                }
               >
                 Cancel
               </button>
@@ -1355,6 +1917,7 @@ function AdminDashboard() {
           <table>
 
             <thead>
+
               <tr>
                 <th>ID</th>
                 <th>Driver</th>
@@ -1362,32 +1925,45 @@ function AdminDashboard() {
                 <th>License</th>
                 <th>Action</th>
               </tr>
+
             </thead>
 
             <tbody>
 
               {drivers.length === 0 ? (
+
                 <tr>
                   <td colSpan="5">
                     No drivers found.
                   </td>
                 </tr>
+
               ) : (
+
                 drivers.map((driver) => (
+
                   <tr key={driver.id}>
 
-                    <td>{driver.id}</td>
+                    <td>
+                      {driver.id}
+                    </td>
 
                     <td className="strong-text">
-                      {driver.driverName}
+                      {
+                        driver.driverName
+                      }
                     </td>
 
                     <td>
-                      {driver.phone || "-"}
+                      {driver.phone ||
+                        "-"}
                     </td>
 
                     <td>
-                      {driver.licenseNumber || "-"}
+                      {
+                        driver.licenseNumber ||
+                        "-"
+                      }
                     </td>
 
                     <td className="action-cell">
@@ -1396,7 +1972,9 @@ function AdminDashboard() {
                         type="button"
                         className="small-btn"
                         onClick={() =>
-                          editDriver(driver)
+                          editDriver(
+                            driver
+                          )
                         }
                       >
                         Edit
@@ -1406,7 +1984,9 @@ function AdminDashboard() {
                         type="button"
                         className="small-btn danger"
                         onClick={() =>
-                          deleteDriver(driver.id)
+                          deleteDriver(
+                            driver.id
+                          )
                         }
                       >
                         Delete
@@ -1415,7 +1995,9 @@ function AdminDashboard() {
                     </td>
 
                   </tr>
+
                 ))
+
               )}
 
             </tbody>
@@ -1427,7 +2009,7 @@ function AdminDashboard() {
       </section>
 
       {/* =====================================================
-          USER & CONTACT MANAGEMENT
+          USER MANAGEMENT
       ===================================================== */}
 
       <section className="management-card full-width-card">
@@ -1435,19 +2017,26 @@ function AdminDashboard() {
         <div className="card-header">
 
           <div>
-            <h2>👥 User & Contact Management</h2>
+
+            <h2>
+              👥 User & Contact Management
+            </h2>
 
             <p>
-              Manage Parent, Teacher, Driver and Admin accounts
+              Manage Parent, Teacher,
+              Driver and Admin accounts
               with emergency contact numbers.
             </p>
+
           </div>
 
           <button
             type="button"
             className="primary-btn"
             onClick={() =>
-              setShowUserForm(!showUserForm)
+              setShowUserForm(
+                !showUserForm
+              )
             }
           >
             {showUserForm
@@ -1467,7 +2056,9 @@ function AdminDashboard() {
               name="name"
               placeholder="Full Name"
               value={userForm.name}
-              onChange={handleUserChange}
+              onChange={
+                handleUserChange
+              }
               required
             />
 
@@ -1475,8 +2066,12 @@ function AdminDashboard() {
               name="email"
               type="email"
               placeholder="Email Address"
-              value={userForm.email}
-              onChange={handleUserChange}
+              value={
+                userForm.email
+              }
+              onChange={
+                handleUserChange
+              }
               required
             />
 
@@ -1485,8 +2080,12 @@ function AdminDashboard() {
                 name="password"
                 type="password"
                 placeholder="Password"
-                value={userForm.password}
-                onChange={handleUserChange}
+                value={
+                  userForm.password
+                }
+                onChange={
+                  handleUserChange
+                }
                 required
               />
             )}
@@ -1494,20 +2093,39 @@ function AdminDashboard() {
             <select
               name="role"
               value={userForm.role}
-              onChange={handleUserChange}
+              onChange={
+                handleUserChange
+              }
             >
-              <option value="PARENT">Parent</option>
-              <option value="TEACHER">Teacher</option>
-              <option value="DRIVER">Driver</option>
-              <option value="ADMIN">Admin</option>
+
+              <option value="PARENT">
+                Parent
+              </option>
+
+              <option value="TEACHER">
+                Teacher
+              </option>
+
+              <option value="DRIVER">
+                Driver
+              </option>
+
+              <option value="ADMIN">
+                Admin
+              </option>
+
             </select>
 
             <input
               name="mobileNumber"
               type="tel"
               placeholder="10 Digit Mobile Number"
-              value={userForm.mobileNumber}
-              onChange={handleUserChange}
+              value={
+                userForm.mobileNumber
+              }
+              onChange={
+                handleUserChange
+              }
               maxLength="10"
               pattern="[0-9]{10}"
               required
@@ -1527,7 +2145,9 @@ function AdminDashboard() {
               <button
                 type="button"
                 className="secondary-btn"
-                onClick={resetUserForm}
+                onClick={
+                  resetUserForm
+                }
               >
                 Cancel
               </button>
@@ -1544,21 +2164,41 @@ function AdminDashboard() {
             placeholder="🔍 Search name, email or mobile..."
             value={userSearch}
             onChange={(e) =>
-              setUserSearch(e.target.value)
+              setUserSearch(
+                e.target.value
+              )
             }
           />
 
           <select
             value={userRoleFilter}
             onChange={(e) =>
-              setUserRoleFilter(e.target.value)
+              setUserRoleFilter(
+                e.target.value
+              )
             }
           >
-            <option value="ALL">All Roles</option>
-            <option value="PARENT">Parent</option>
-            <option value="TEACHER">Teacher</option>
-            <option value="DRIVER">Driver</option>
-            <option value="ADMIN">Admin</option>
+
+            <option value="ALL">
+              All Roles
+            </option>
+
+            <option value="PARENT">
+              Parent
+            </option>
+
+            <option value="TEACHER">
+              Teacher
+            </option>
+
+            <option value="DRIVER">
+              Driver
+            </option>
+
+            <option value="ADMIN">
+              Admin
+            </option>
+
           </select>
 
         </div>
@@ -1568,6 +2208,7 @@ function AdminDashboard() {
           <table>
 
             <thead>
+
               <tr>
                 <th>ID</th>
                 <th>Name</th>
@@ -1576,85 +2217,104 @@ function AdminDashboard() {
                 <th>Mobile</th>
                 <th>Action</th>
               </tr>
+
             </thead>
 
             <tbody>
 
-              {filteredUsers.length === 0 ? (
+              {filteredUsers.length ===
+              0 ? (
+
                 <tr>
                   <td colSpan="6">
                     No users found.
                   </td>
                 </tr>
+
               ) : (
-                filteredUsers.map((user) => (
 
-                  <tr key={user.id}>
+                filteredUsers.map(
+                  (user) => (
 
-                    <td>{user.id}</td>
+                    <tr key={user.id}>
 
-                    <td className="strong-text">
-                      {user.name}
-                    </td>
+                      <td>
+                        {user.id}
+                      </td>
 
-                    <td>
-                      {user.email}
-                    </td>
+                      <td className="strong-text">
+                        {user.name}
+                      </td>
 
-                    <td>
+                      <td>
+                        {user.email}
+                      </td>
 
-                      <span
-                        className={`role-badge ${String(
-                          user.role || ""
-                        ).toLowerCase()}`}
-                      >
-                        {user.role}
-                      </span>
+                      <td>
 
-                    </td>
-
-                    <td>
-
-                      {user.mobileNumber ? (
-                        <a
-                          className="mobile-link"
-                          href={`tel:${user.mobileNumber}`}
+                        <span
+                          className={`role-badge ${String(
+                            user.role || ""
+                          ).toLowerCase()}`}
                         >
-                          📞 {user.mobileNumber}
-                        </a>
-                      ) : (
-                        "-"
-                      )}
+                          {user.role}
+                        </span>
 
-                    </td>
+                      </td>
 
-                    <td className="action-cell">
+                      <td>
 
-                      <button
-                        type="button"
-                        className="small-btn"
-                        onClick={() =>
-                          editUser(user)
-                        }
-                      >
-                        Edit
-                      </button>
+                        {user.mobileNumber ? (
 
-                      <button
-                        type="button"
-                        className="small-btn danger"
-                        onClick={() =>
-                          deleteUser(user.id)
-                        }
-                      >
-                        Delete
-                      </button>
+                          <a
+                            className="mobile-link"
+                            href={`tel:${user.mobileNumber}`}
+                          >
+                            📞{" "}
+                            {
+                              user.mobileNumber
+                            }
+                          </a>
 
-                    </td>
+                        ) : (
+                          "-"
+                        )}
 
-                  </tr>
+                      </td>
 
-                ))
+                      <td className="action-cell">
+
+                        <button
+                          type="button"
+                          className="small-btn"
+                          onClick={() =>
+                            editUser(
+                              user
+                            )
+                          }
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          className="small-btn danger"
+                          onClick={() =>
+                            deleteUser(
+                              user.id
+                            )
+                          }
+                        >
+                          Delete
+                        </button>
+
+                      </td>
+
+                    </tr>
+
+                  )
+                )
+
               )}
 
             </tbody>
@@ -1674,12 +2334,17 @@ function AdminDashboard() {
         <div className="card-header">
 
           <div>
-            <h2>🚨 Safety Alert Center</h2>
+
+            <h2>
+              🚨 Safety Alert Center
+            </h2>
 
             <p>
-              Monitor emergency, safety button,
-              door and child-left-behind alerts.
+              Monitor emergency, safety
+              button, door and
+              child-left-behind alerts.
             </p>
+
           </div>
 
           <button
@@ -1695,23 +2360,54 @@ function AdminDashboard() {
         <div className="alert-summary">
 
           <div className="alert-summary-card">
-            <span>🚨</span>
-            <strong>{activeAlerts.length}</strong>
-            <small>Active</small>
-          </div>
 
-          <div className="alert-summary-card">
-            <span>🟢</span>
+            <span>
+              🚨
+            </span>
+
             <strong>
-              {alerts.length - activeAlerts.length}
+              {activeAlerts.length}
             </strong>
-            <small>Resolved</small>
+
+            <small>
+              Active
+            </small>
+
           </div>
 
           <div className="alert-summary-card">
-            <span>📋</span>
-            <strong>{alerts.length}</strong>
-            <small>Total History</small>
+
+            <span>
+              🟢
+            </span>
+
+            <strong>
+              {
+                alerts.length -
+                activeAlerts.length
+              }
+            </strong>
+
+            <small>
+              Resolved
+            </small>
+
+          </div>
+
+          <div className="alert-summary-card">
+
+            <span>
+              📋
+            </span>
+
+            <strong>
+              {alerts.length}
+            </strong>
+
+            <small>
+              Total History
+            </small>
+
           </div>
 
         </div>
@@ -1719,20 +2415,27 @@ function AdminDashboard() {
         <div className="alerts-container">
 
           {alerts.length === 0 ? (
+
             <div className="empty-state">
               🟢 No safety alerts found.
             </div>
+
           ) : (
+
             alerts
               .slice()
               .reverse()
               .map((alert) => {
 
-                const status = String(
-                  alert.status || "ACTIVE"
-                ).toUpperCase();
+                const status =
+                  String(
+                    alert.status ||
+                      "ACTIVE"
+                  ).toUpperCase();
 
-                const isActive = status !== "RESOLVED";
+                const isActive =
+                  status !==
+                  "RESOLVED";
 
                 return (
                   <div
@@ -1747,7 +2450,9 @@ function AdminDashboard() {
                     <div className="alert-main">
 
                       <div className="alert-icon">
-                        {isActive ? "🚨" : "✓"}
+                        {isActive
+                          ? "🚨"
+                          : "✓"}
                       </div>
 
                       <div>
@@ -1759,7 +2464,8 @@ function AdminDashboard() {
                         </h3>
 
                         <p>
-                          Alert ID: {alert.id}
+                          Alert ID:{" "}
+                          {alert.id}
                         </p>
 
                       </div>
@@ -1783,7 +2489,9 @@ function AdminDashboard() {
                           type="button"
                           className="small-btn resolve-btn"
                           onClick={() =>
-                            resolveAlert(alert.id)
+                            resolveAlert(
+                              alert.id
+                            )
                           }
                         >
                           Resolve
@@ -1795,6 +2503,7 @@ function AdminDashboard() {
                   </div>
                 );
               })
+
           )}
 
         </div>
@@ -1810,11 +2519,16 @@ function AdminDashboard() {
         <div className="card-header">
 
           <div>
-            <h2>🛣️ Journey Management</h2>
+
+            <h2>
+              🛣️ Journey Management
+            </h2>
 
             <p>
-              View school bus journey history and completion status.
+              View school bus journey
+              history and completion status.
             </p>
+
           </div>
 
         </div>
@@ -1826,14 +2540,39 @@ function AdminDashboard() {
             <thead>
 
               <tr>
-                <th>ID</th>
-                <th>Bus ID</th>
-                <th>Expected Start</th>
-                <th>Expected End</th>
-                <th>Actual Start</th>
-                <th>Actual End</th>
-                <th>Status</th>
-                <th>Action</th>
+
+                <th>
+                  ID
+                </th>
+
+                <th>
+                  Bus ID
+                </th>
+
+                <th>
+                  Expected Start
+                </th>
+
+                <th>
+                  Expected End
+                </th>
+
+                <th>
+                  Actual Start
+                </th>
+
+                <th>
+                  Actual End
+                </th>
+
+                <th>
+                  Status
+                </th>
+
+                <th>
+                  Action
+                </th>
+
               </tr>
 
             </thead>
@@ -1841,41 +2580,62 @@ function AdminDashboard() {
             <tbody>
 
               {journeys.length === 0 ? (
+
                 <tr>
+
                   <td colSpan="8">
                     No journeys found.
                   </td>
+
                 </tr>
+
               ) : (
+
                 journeys
                   .slice()
                   .reverse()
                   .map((journey) => (
 
-                    <tr key={journey.id}>
+                    <tr
+                      key={journey.id}
+                    >
 
                       <td>
                         {journey.id}
                       </td>
 
                       <td>
-                        🚌 {journey.busId || "-"}
+                        🚌{" "}
+                        {journey.busId ||
+                          "-"}
                       </td>
 
                       <td>
-                        {journey.expectedStartTime || "-"}
+                        {
+                          journey.expectedStartTime ||
+                          "-"
+                        }
                       </td>
 
                       <td>
-                        {journey.expectedEndTime || "-"}
+                        {
+                          journey.expectedEndTime ||
+                          "-"
+                        }
                       </td>
 
                       <td>
-                        {journey.actualStartTime || "-"}
+                        {
+                          journey.actualStartTime ||
+                          "-"
+                        }
                       </td>
 
                       <td>
-                        {journey.actualEndTime || "-"}
+                        {
+                          journey.actualEndTime ||
+                          "-"
+                        }
                       </td>
 
                       <td>
@@ -1883,14 +2643,18 @@ function AdminDashboard() {
                         <span
                           className={
                             String(
-                              journey.status || ""
+                              journey.status ||
+                                ""
                             ).toUpperCase() ===
                             "COMPLETED"
                               ? "status-badge resolved-status"
                               : "status-badge danger-status"
                           }
                         >
-                          {journey.status || "-"}
+                          {
+                            journey.status ||
+                            "-"
+                          }
                         </span>
 
                       </td>
@@ -1901,7 +2665,9 @@ function AdminDashboard() {
                           type="button"
                           className="small-btn danger"
                           onClick={() =>
-                            deleteJourney(journey.id)
+                            deleteJourney(
+                              journey.id
+                            )
                           }
                         >
                           Delete
@@ -1912,6 +2678,7 @@ function AdminDashboard() {
                     </tr>
 
                   ))
+
               )}
 
             </tbody>
@@ -1931,17 +2698,25 @@ function AdminDashboard() {
         <div className="card-header">
 
           <div>
-            <h2>📍 Emergency GPS Tracker</h2>
+
+            <h2>
+              📍 Emergency GPS Tracker
+            </h2>
 
             <p>
-              Latest emergency GPS locations reported by the system.
+              Latest emergency GPS
+              locations reported by
+              the system.
             </p>
+
           </div>
 
           <button
             type="button"
             className="refresh-btn"
-            onClick={loadLocations}
+            onClick={
+              loadLocations
+            }
           >
             🔄 Refresh GPS
           </button>
@@ -1951,10 +2726,13 @@ function AdminDashboard() {
         <div className="gps-status-card">
 
           <div>
-            <span className="gps-icon">📍</span>
+            <span className="gps-icon">
+              📍
+            </span>
           </div>
 
           <div>
+
             <strong>
               GPS Monitoring System
             </strong>
@@ -1964,6 +2742,7 @@ function AdminDashboard() {
                 ? "Emergency location data available"
                 : "No emergency location recorded"}
             </p>
+
           </div>
 
         </div>
@@ -1975,13 +2754,35 @@ function AdminDashboard() {
             <thead>
 
               <tr>
-                <th>ID</th>
-                <th>Bus ID</th>
-                <th>Student ID</th>
-                <th>Latitude</th>
-                <th>Longitude</th>
-                <th>Timestamp</th>
-                <th>Map</th>
+
+                <th>
+                  ID
+                </th>
+
+                <th>
+                  Bus ID
+                </th>
+
+                <th>
+                  Student ID
+                </th>
+
+                <th>
+                  Latitude
+                </th>
+
+                <th>
+                  Longitude
+                </th>
+
+                <th>
+                  Timestamp
+                </th>
+
+                <th>
+                  Map
+                </th>
+
               </tr>
 
             </thead>
@@ -1989,41 +2790,65 @@ function AdminDashboard() {
             <tbody>
 
               {locations.length === 0 ? (
+
                 <tr>
+
                   <td colSpan="7">
                     No GPS locations found.
                   </td>
+
                 </tr>
+
               ) : (
+
                 locations
                   .slice()
                   .reverse()
                   .map((location) => (
 
-                    <tr key={location.id}>
+                    <tr
+                      key={
+                        location.id
+                      }
+                    >
 
                       <td>
                         {location.id}
                       </td>
 
                       <td>
-                        {location.busId || "-"}
+                        {
+                          location.busId ||
+                          "-"
+                        }
                       </td>
 
                       <td>
-                        {location.studentId || "-"}
+                        {
+                          location.studentId ||
+                          "-"
+                        }
                       </td>
 
                       <td>
-                        {location.latitude || "-"}
+                        {
+                          location.latitude ||
+                          "-"
+                        }
                       </td>
 
                       <td>
-                        {location.longitude || "-"}
+                        {
+                          location.longitude ||
+                          "-"
+                        }
                       </td>
 
                       <td>
-                        {location.timestamp || "-"}
+                        {
+                          location.timestamp ||
+                          "-"
+                        }
                       </td>
 
                       <td>
@@ -2053,6 +2878,7 @@ function AdminDashboard() {
                     </tr>
 
                   ))
+
               )}
 
             </tbody>
@@ -2063,7 +2889,9 @@ function AdminDashboard() {
 
       </section>
 
-      {/* ================= FOOTER ================= */}
+      {/* =====================================================
+          FOOTER
+      ===================================================== */}
 
       <footer className="admin-footer">
 
@@ -2072,8 +2900,8 @@ function AdminDashboard() {
         </div>
 
         <p>
-          Intelligent School Bus Safety, Attendance
-          & Emergency Alert System
+          Intelligent School Bus Safety,
+          Attendance & Emergency Alert System
         </p>
 
         <small>

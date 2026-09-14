@@ -11,14 +11,15 @@ function DriverDashboard() {
   // API CONFIGURATION
   // =========================================================
 
-const API =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:9091";
+  const API =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:9091";
+
   const BUS_ID = 1;
   const BUS_NUMBER = "MH12AB1001";
 
   // =========================================================
-  // USER
+  // LOGGED-IN USER
   // =========================================================
 
   const user = JSON.parse(
@@ -31,12 +32,14 @@ const API =
   // DRIVER INFORMATION
   // =========================================================
 
-  const [driver] = useState({
-    driverName: user?.name || "Nilam Yogesh Bhame",
-    email: user?.email || "nilam@gmail.com",
+  const [driver, setDriver] = useState({
+    driverName: "Ramesh Patil",
+    email: "",
+    phone: "",
+    licenseNumber: "",
     busNumber: BUS_NUMBER,
     capacity: 40,
-    route: "School Route A",
+    route: "Route A",
   });
 
   // =========================================================
@@ -82,20 +85,25 @@ const API =
   const scanProcessingRef = useRef(false);
   const attendanceLoadingRef = useRef(false);
 
-  // Keep ref synchronized
+  // =========================================================
+  // KEEP ATTENDANCE REF SYNCHRONIZED
+  // =========================================================
+
   useEffect(() => {
     attendanceLoadingRef.current = attendanceLoading;
   }, [attendanceLoading]);
 
   // =========================================================
-  // LOAD STUDENTS - ONLY ONCE
+  // LOAD STUDENTS
   // =========================================================
 
   const loadStudents = async () => {
     try {
       setStudentsLoading(true);
 
-      const response = await fetch(`${API}/api/students`);
+      const response = await fetch(
+        `${API}/api/students`
+      );
 
       if (!response.ok) {
         throw new Error("Failed to load students");
@@ -112,7 +120,10 @@ const API =
           student.busStatus || "ACTIVE"
         ).toUpperCase();
 
-        return busId === BUS_ID && status === "ACTIVE";
+        return (
+          busId === BUS_ID &&
+          status === "ACTIVE"
+        );
       });
 
       console.log(
@@ -122,7 +133,11 @@ const API =
 
       setStudents(activeStudents);
     } catch (error) {
-      console.error("❌ Student loading error:", error);
+      console.error(
+        "❌ Student loading error:",
+        error
+      );
+
       setStudents([]);
     } finally {
       setStudentsLoading(false);
@@ -134,7 +149,203 @@ const API =
   }, []);
 
   // =========================================================
-  // LOAD ATTENDANCE - ONLY ONCE
+  // LOAD BUS + DRIVER INFORMATION
+  // =========================================================
+
+  const loadDriverInformation = async () => {
+    try {
+      // -------------------------------------------------------
+      // GET BUS
+      // -------------------------------------------------------
+
+      const busResponse = await fetch(
+        `${API}/api/buses/${BUS_ID}`
+      );
+
+      if (!busResponse.ok) {
+        throw new Error(
+          "Failed to load bus information"
+        );
+      }
+
+      const busData = await busResponse.json();
+
+      console.log(
+        "🚌 BUS INFORMATION:",
+        busData
+      );
+
+      const assignedDriverName = String(
+        busData.driverName || ""
+      ).trim();
+
+      // -------------------------------------------------------
+      // UPDATE BUS INFORMATION
+      // -------------------------------------------------------
+
+      setDriver((previous) => ({
+        ...previous,
+
+        busNumber:
+          busData.busNumber ||
+          BUS_NUMBER,
+
+        route:
+          busData.route ||
+          "School Route A",
+      }));
+
+      // -------------------------------------------------------
+      // GET DRIVERS
+      // -------------------------------------------------------
+
+      const driverResponse = await fetch(
+        `${API}/api/drivers`
+      );
+
+      if (!driverResponse.ok) {
+        throw new Error(
+          "Failed to load drivers"
+        );
+      }
+
+      const drivers =
+        await driverResponse.json();
+
+      console.log(
+        "👨‍✈️ ALL DRIVERS:",
+        drivers
+      );
+
+      // -------------------------------------------------------
+      // FIND ASSIGNED DRIVER
+      // -------------------------------------------------------
+
+      const assignedDriver =
+        drivers.find(
+          (item) =>
+            String(
+              item.driverName || ""
+            )
+              .trim()
+              .toLowerCase() ===
+            assignedDriverName.toLowerCase()
+        );
+
+      // -------------------------------------------------------
+      // DRIVER FOUND
+      // -------------------------------------------------------
+
+      if (assignedDriver) {
+        setDriver((previous) => ({
+          ...previous,
+
+          driverName:
+            assignedDriver.driverName ||
+            "Ramesh Patil",
+
+          email:
+            user?.email || "",
+
+          phone:
+            assignedDriver.phone || "",
+
+          licenseNumber:
+            assignedDriver.licenseNumber || "",
+        }));
+
+        console.log(
+          "✅ ASSIGNED DRIVER:",
+          assignedDriver
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------------
+      // DRIVER RECORD NOT FOUND
+      // -------------------------------------------------------
+
+      if (assignedDriverName) {
+        setDriver((previous) => ({
+          ...previous,
+
+          driverName:
+            assignedDriverName,
+
+          email:
+            user?.email || "",
+
+          phone: "",
+
+          licenseNumber: "",
+        }));
+
+        console.warn(
+          "⚠️ Driver record not found:",
+          assignedDriverName
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------------
+      // NO DRIVER
+      // -------------------------------------------------------
+
+      setDriver((previous) => ({
+        ...previous,
+
+        driverName:
+          "Driver Not Assigned",
+
+        email:
+          user?.email || "",
+
+        phone: "",
+
+        licenseNumber: "",
+      }));
+    } catch (error) {
+      console.error(
+        "❌ Driver information loading error:",
+        error
+      );
+
+      // -------------------------------------------------------
+      // FALLBACK
+      // -------------------------------------------------------
+
+      setDriver((previous) => ({
+        ...previous,
+
+        driverName:
+          "Ramesh Patil",
+
+        email:
+          user?.email || "",
+
+        phone: "",
+
+        licenseNumber: "",
+
+        busNumber:
+          BUS_NUMBER,
+
+        capacity: 40,
+
+        route:
+          "School Route A",
+      }));
+    }
+  };
+
+  useEffect(() => {
+    loadDriverInformation();
+  }, []);
+
+  // =========================================================
+  // LOAD ATTENDANCE
   // =========================================================
 
   const loadAttendance = async () => {
@@ -144,36 +355,52 @@ const API =
       );
 
       if (!response.ok) {
-        throw new Error("Failed to load attendance");
+        throw new Error(
+          "Failed to load attendance"
+        );
       }
 
       const data = await response.json();
 
-      console.log("📊 Attendance from MySQL:", data);
+      console.log(
+        "📊 Attendance from MySQL:",
+        data
+      );
 
       const attendanceMap = {};
 
       data.forEach((record) => {
         if (
-          String(record.status || "").toUpperCase() ===
-          "BOARDED"
+          String(
+            record.status || ""
+          ).toUpperCase() === "BOARDED"
         ) {
           attendanceMap[record.studentId] = {
             id: record.id,
-            studentId: record.studentId,
-            studentName: record.studentName,
-            rollNo: record.rollNo,
-            busId: record.busId,
-            busNumber: record.busNumber,
-            status: record.status,
-            time: record.attendanceTime,
+            studentId:
+              record.studentId,
+            studentName:
+              record.studentName,
+            rollNo:
+              record.rollNo,
+            busId:
+              record.busId,
+            busNumber:
+              record.busNumber,
+            status:
+              record.status,
+            time:
+              record.attendanceTime,
           };
         }
       });
 
       setAttendance(attendanceMap);
     } catch (error) {
-      console.error("❌ Attendance loading error:", error);
+      console.error(
+        "❌ Attendance loading error:",
+        error
+      );
     }
   };
 
@@ -194,45 +421,57 @@ const API =
 
     const startScanner = async () => {
       try {
-        const scanner = new Html5QrcodeScanner(
-          "qr-reader",
-          {
-            fps: 10,
-            qrbox: {
-              width: 250,
-              height: 250,
+        const scanner =
+          new Html5QrcodeScanner(
+            "qr-reader",
+            {
+              fps: 10,
+
+              qrbox: {
+                width: 250,
+                height: 250,
+              },
+
+              rememberLastUsedCamera: true,
+
+              showTorchButtonIfSupported: true,
             },
-            rememberLastUsedCamera: true,
-            showTorchButtonIfSupported: true,
-          },
-          false
-        );
+            false
+          );
 
         scannerRef.current = scanner;
 
-        const handleScanSuccess = (decodedText) => {
-          if (
-            scanProcessingRef.current ||
-            attendanceLoadingRef.current
-          ) {
-            return;
-          }
+        const handleScanSuccess =
+          (decodedText) => {
+            if (
+              scanProcessingRef.current ||
+              attendanceLoadingRef.current
+            ) {
+              return;
+            }
 
-          scanProcessingRef.current = true;
+            scanProcessingRef.current = true;
 
-          processQRCode(decodedText);
-        };
+            processQRCode(decodedText);
+          };
 
-        const handleScanError = (errorMessage) => {
-          console.log("QR scanner:", errorMessage);
-        };
+        const handleScanError =
+          (errorMessage) => {
+            console.log(
+              "QR scanner:",
+              errorMessage
+            );
+          };
 
         scanner.render(
           handleScanSuccess,
           handleScanError
         );
       } catch (error) {
-        console.error("❌ QR Scanner Error:", error);
+        console.error(
+          "❌ QR Scanner Error:",
+          error
+        );
 
         setScanMessage(
           "❌ Camera could not be started.\n\n" +
@@ -250,7 +489,10 @@ const API =
         scannerRef.current
           .clear()
           .catch((error) => {
-            console.log("Scanner cleanup:", error);
+            console.log(
+              "Scanner cleanup:",
+              error
+            );
           });
 
         scannerRef.current = null;
@@ -268,27 +510,42 @@ const API =
       return;
     }
 
-    const qrValue = String(decodedText || "")
+    const qrValue = String(
+      decodedText || ""
+    )
       .trim()
       .toUpperCase();
 
-    console.log("📱 QR SCANNED:", qrValue);
+    console.log(
+      "📱 QR SCANNED:",
+      qrValue
+    );
 
     if (!qrValue) {
       scanProcessingRef.current = false;
       return;
     }
 
+    // -------------------------------------------------------
     // FIND STUDENT
+    // -------------------------------------------------------
+
     const student = students.find(
       (item) =>
-        String(item.rollNo || "")
+        String(
+          item.rollNo || ""
+        )
           .trim()
           .toUpperCase() === qrValue ||
-        String(item.id || "").trim() === qrValue
+        String(
+          item.id || ""
+        ).trim() === qrValue
     );
 
+    // -------------------------------------------------------
     // INVALID QR
+    // -------------------------------------------------------
+
     if (!student) {
       setScannedStudent(null);
 
@@ -307,7 +564,10 @@ const API =
       return;
     }
 
+    // -------------------------------------------------------
     // DUPLICATE SCAN
+    // -------------------------------------------------------
+
     if (attendance[student.id]) {
       setScannedStudent(student);
 
@@ -326,28 +586,49 @@ const API =
       return;
     }
 
+    // -------------------------------------------------------
     // TIME
+    // -------------------------------------------------------
+
     const now = new Date();
 
-    const time = now.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
+    const time =
+      now.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
 
+    // -------------------------------------------------------
     // ATTENDANCE DATA
+    // -------------------------------------------------------
+
     const attendanceData = {
-      studentId: student.id,
-      studentName: student.studentName,
-      rollNo: student.rollNo,
-      busId: BUS_ID,
-      busNumber: driver.busNumber,
-      status: "BOARDED",
-      attendanceTime: time,
+      studentId:
+        student.id,
+
+      studentName:
+        student.studentName,
+
+      rollNo:
+        student.rollNo,
+
+      busId:
+        BUS_ID,
+
+      busNumber:
+        driver.busNumber,
+
+      status:
+        "BOARDED",
+
+      attendanceTime:
+        time,
     };
 
     try {
       setAttendanceLoading(true);
+
       attendanceLoadingRef.current = true;
 
       console.log(
@@ -355,16 +636,23 @@ const API =
         attendanceData
       );
 
-      const response = await fetch(
-        `${API}/api/attendance`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(attendanceData),
-        }
-      );
+      const response =
+        await fetch(
+          `${API}/api/attendance`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify(
+                attendanceData
+              ),
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
@@ -381,22 +669,40 @@ const API =
       );
 
       const attendanceRecord = {
-        id: savedAttendance.id,
-        studentId: student.id,
-        studentName: student.studentName,
-        rollNo: student.rollNo,
-        busId: BUS_ID,
-        busNumber: driver.busNumber,
-        status: "BOARDED",
+        id:
+          savedAttendance.id,
+
+        studentId:
+          student.id,
+
+        studentName:
+          student.studentName,
+
+        rollNo:
+          student.rollNo,
+
+        busId:
+          BUS_ID,
+
+        busNumber:
+          driver.busNumber,
+
+        status:
+          "BOARDED",
+
         time:
           savedAttendance.attendanceTime ||
           time,
       };
 
-      setAttendance((previous) => ({
-        ...previous,
-        [student.id]: attendanceRecord,
-      }));
+      setAttendance(
+        (previous) => ({
+          ...previous,
+
+          [student.id]:
+            attendanceRecord,
+        })
+      );
 
       setScannedStudent(student);
 
@@ -419,6 +725,7 @@ const API =
 
       setTimeout(() => {
         setScannerOpen(false);
+
         scanProcessingRef.current = false;
       }, 500);
     } catch (error) {
@@ -443,6 +750,7 @@ const API =
       scanProcessingRef.current = false;
     } finally {
       setAttendanceLoading(false);
+
       attendanceLoadingRef.current = false;
     }
   };
@@ -477,7 +785,10 @@ const API =
       scannerRef.current
         .clear()
         .catch((error) => {
-          console.log("Scanner close:", error);
+          console.log(
+            "Scanner close:",
+            error
+          );
         });
 
       scannerRef.current = null;
@@ -534,8 +845,10 @@ const API =
         const locationData = {
           latitude:
             position.coords.latitude,
+
           longitude:
             position.coords.longitude,
+
           accuracy:
             position.coords.accuracy,
         };
@@ -549,29 +862,38 @@ const API =
         );
 
         try {
-          const response = await fetch(
-            `${API}/api/emergency-location`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify({
-                busId: BUS_ID,
-                latitude:
-                  locationData.latitude,
-                longitude:
-                  locationData.longitude,
-                accuracy:
-                  locationData.accuracy,
-                studentId:
-                  students.length > 0
-                    ? students[0].id
-                    : null,
-              }),
-            }
-          );
+          const response =
+            await fetch(
+              `${API}/api/emergency-location`,
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body:
+                  JSON.stringify({
+                    busId:
+                      BUS_ID,
+
+                    latitude:
+                      locationData.latitude,
+
+                    longitude:
+                      locationData.longitude,
+
+                    accuracy:
+                      locationData.accuracy,
+
+                    studentId:
+                      students.length > 0
+                        ? students[0].id
+                        : null,
+                  }),
+              }
+            );
 
           if (!response.ok) {
             throw new Error(
@@ -590,13 +912,9 @@ const API =
           window.alert(
             "📍 GPS Location Saved Successfully!\n\n" +
               "Latitude: " +
-              locationData.latitude.toFixed(
-                6
-              ) +
+              locationData.latitude.toFixed(6) +
               "\nLongitude: " +
-              locationData.longitude.toFixed(
-                6
-              )
+              locationData.longitude.toFixed(6)
           );
         } catch (error) {
           console.error(
@@ -613,6 +931,7 @@ const API =
           setGpsLoading(false);
         }
       },
+
       (error) => {
         console.error(
           "GPS Error:",
@@ -636,6 +955,7 @@ const API =
           );
         }
       },
+
       {
         enableHighAccuracy: true,
         timeout: 10000,
@@ -661,7 +981,10 @@ const API =
       `https://www.google.com/maps?q=` +
       `${gpsLocation.latitude},${gpsLocation.longitude}`;
 
-    window.open(url, "_blank");
+    window.open(
+      url,
+      "_blank"
+    );
   };
 
   // =========================================================
@@ -683,25 +1006,36 @@ const API =
 
     if (newDoorStatus === true) {
       try {
-        const response = await fetch(
-          `${API}/api/alerts`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              studentId,
-              busId: BUS_ID,
-              alertType:
-                "DOOR_OPEN",
-              message:
-                "Bus door has been opened.",
-              status: "ACTIVE",
-            }),
-          }
-        );
+        const response =
+          await fetch(
+            `${API}/api/alerts`,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  studentId:
+                    studentId,
+
+                  busId:
+                    BUS_ID,
+
+                  alertType:
+                    "DOOR_OPEN",
+
+                  message:
+                    "Bus door has been opened.",
+
+                  status:
+                    "ACTIVE",
+                }),
+            }
+          );
 
         if (!response.ok) {
           throw new Error(
@@ -784,21 +1118,32 @@ const API =
             `${API}/api/journeys`,
             {
               method: "POST",
+
               headers: {
                 "Content-Type":
                   "application/json",
               },
-              body: JSON.stringify({
-                busId: BUS_ID,
-                expectedStartTime:
-                  "08:00",
-                expectedEndTime:
-                  "09:00",
-                actualStartTime:
-                  startTime,
-                actualEndTime: null,
-                status: "ACTIVE",
-              }),
+
+              body:
+                JSON.stringify({
+                  busId:
+                    BUS_ID,
+
+                  expectedStartTime:
+                    "08:00",
+
+                  expectedEndTime:
+                    "09:00",
+
+                  actualStartTime:
+                    startTime,
+
+                  actualEndTime:
+                    null,
+
+                  status:
+                    "ACTIVE",
+                }),
             }
           );
 
@@ -816,7 +1161,10 @@ const API =
           journey
         );
 
-        setJourneyId(journey.id);
+        setJourneyId(
+          journey.id
+        );
+
         setRouteStarted(true);
         setLeftBehind(false);
         setAlert(false);
@@ -853,22 +1201,32 @@ const API =
           `${API}/api/journeys/${journeyId}`,
           {
             method: "PUT",
+
             headers: {
               "Content-Type":
                 "application/json",
             },
-            body: JSON.stringify({
-              busId: BUS_ID,
-              expectedStartTime:
-                "08:00",
-              expectedEndTime:
-                "09:00",
-              actualStartTime:
-                "08:00",
-              actualEndTime:
-                endTime,
-              status: "COMPLETED",
-            }),
+
+            body:
+              JSON.stringify({
+                busId:
+                  BUS_ID,
+
+                expectedStartTime:
+                  "08:00",
+
+                expectedEndTime:
+                  "09:00",
+
+                actualStartTime:
+                  "08:00",
+
+                actualEndTime:
+                  endTime,
+
+                status:
+                  "COMPLETED",
+              }),
           }
         );
 
@@ -899,21 +1257,29 @@ const API =
             `${API}/api/safety/check`,
             {
               method: "POST",
+
               headers: {
                 "Content-Type":
                   "application/json",
               },
-              body: JSON.stringify({
-                studentId:
-                  studentId,
-                busId: BUS_ID,
-                childPresent:
-                  childPresent,
-                doorOpen:
-                  doorOpen,
-                routeCompleted:
-                  true,
-              }),
+
+              body:
+                JSON.stringify({
+                  studentId:
+                    studentId,
+
+                  busId:
+                    BUS_ID,
+
+                  childPresent:
+                    childPresent,
+
+                  doorOpen:
+                    doorOpen,
+
+                  routeCompleted:
+                    true,
+                }),
             }
           );
 
@@ -931,7 +1297,9 @@ const API =
           safetyResult
         );
 
+        // ---------------------------------------------------
         // CHILD LEFT BEHIND
+        // ---------------------------------------------------
 
         if (
           safetyResult.leftBehind ===
@@ -946,21 +1314,29 @@ const API =
                 `${API}/api/alerts`,
                 {
                   method: "POST",
+
                   headers: {
                     "Content-Type":
                       "application/json",
                   },
-                  body: JSON.stringify({
-                    studentId:
-                      studentId,
-                    busId: BUS_ID,
-                    alertType:
-                      "CHILD_LEFT_BEHIND",
-                    message:
-                      "Child is still detected inside the bus after journey completion.",
-                    status:
-                      "ACTIVE",
-                  }),
+
+                  body:
+                    JSON.stringify({
+                      studentId:
+                        studentId,
+
+                      busId:
+                        BUS_ID,
+
+                      alertType:
+                        "CHILD_LEFT_BEHIND",
+
+                      message:
+                        "Child is still detected inside the bus after journey completion.",
+
+                      status:
+                        "ACTIVE",
+                    }),
                 }
               );
 
@@ -1042,21 +1418,29 @@ const API =
           `${API}/api/alerts`,
           {
             method: "POST",
+
             headers: {
               "Content-Type":
                 "application/json",
             },
-            body: JSON.stringify({
-              studentId:
-                studentId,
-              busId: BUS_ID,
-              alertType:
-                "SAFETY_BUTTON",
-              message:
-                "Safety button pressed by driver for immediate child safety assistance.",
-              status:
-                "ACTIVE",
-            }),
+
+            body:
+              JSON.stringify({
+                studentId:
+                  studentId,
+
+                busId:
+                  BUS_ID,
+
+                alertType:
+                  "SAFETY_BUTTON",
+
+                message:
+                  "Safety button pressed by driver for immediate child safety assistance.",
+
+                status:
+                  "ACTIVE",
+              }),
           }
         );
 
@@ -1117,21 +1501,29 @@ const API =
           `${API}/api/alerts`,
           {
             method: "POST",
+
             headers: {
               "Content-Type":
                 "application/json",
             },
-            body: JSON.stringify({
-              studentId:
-                studentId,
-              busId: BUS_ID,
-              alertType:
-                "EMERGENCY",
-              message:
-                "Emergency alert sent by driver for child safety.",
-              status:
-                "ACTIVE",
-            }),
+
+            body:
+              JSON.stringify({
+                studentId:
+                  studentId,
+
+                busId:
+                  BUS_ID,
+
+                alertType:
+                  "EMERGENCY",
+
+                message:
+                  "Emergency alert sent by driver for child safety.",
+
+                status:
+                  "ACTIVE",
+              }),
           }
         );
 
@@ -1177,6 +1569,7 @@ const API =
     localStorage.removeItem("user");
     localStorage.removeItem("safeSeatUser");
     localStorage.removeItem("role");
+    localStorage.removeItem("userRole");
 
     navigate("/login");
   };
@@ -1187,7 +1580,8 @@ const API =
 
   const boardedCount =
     students.filter(
-      (student) => attendance[student.id]
+      (student) =>
+        attendance[student.id]
     ).length;
 
   // =========================================================
@@ -1210,6 +1604,7 @@ const API =
           </div>
 
           <div>
+
             <div className="logo-title">
               SafeSeat <span>AI</span>
             </div>
@@ -1217,6 +1612,7 @@ const API =
             <div className="logo-subtitle">
               School Bus Safety System
             </div>
+
           </div>
 
         </div>
@@ -1253,9 +1649,7 @@ const API =
 
           <h1>
             Welcome,{" "}
-            {user?.name ||
-              "Nilam Yogesh Bhame"}{" "}
-            👋
+            {driver.driverName} 👋
           </h1>
 
           <p>
@@ -1277,6 +1671,7 @@ const API =
               : "safe-badge"
           }
         >
+
           {leftBehind
             ? "🔴 Child Left Behind"
             : alert
@@ -1284,6 +1679,7 @@ const API =
             : routeStarted
             ? "🟢 Journey Active"
             : "⚪ Journey Not Started"}
+
         </div>
 
       </section>
@@ -1301,10 +1697,15 @@ const API =
           </div>
 
           <div>
-            <span>Assigned Bus</span>
+
+            <span>
+              Assigned Bus
+            </span>
+
             <strong>
               {driver.busNumber}
             </strong>
+
           </div>
 
         </div>
@@ -1316,10 +1717,15 @@ const API =
           </div>
 
           <div>
-            <span>Total Students</span>
+
+            <span>
+              Total Students
+            </span>
+
             <strong>
               {students.length}
             </strong>
+
           </div>
 
         </div>
@@ -1331,13 +1737,17 @@ const API =
           </div>
 
           <div>
-            <span>Journey</span>
+
+            <span>
+              Journey
+            </span>
 
             <strong>
               {routeStarted
                 ? "ACTIVE"
                 : "NOT STARTED"}
             </strong>
+
           </div>
 
         </div>
@@ -1349,13 +1759,17 @@ const API =
           </div>
 
           <div>
-            <span>Safety Status</span>
+
+            <span>
+              Safety Status
+            </span>
 
             <strong>
               {leftBehind
                 ? "ALERT"
                 : "SAFE"}
             </strong>
+
           </div>
 
         </div>
@@ -1381,11 +1795,15 @@ const API =
             </div>
 
             <div>
-              <h3>Assigned Bus</h3>
+
+              <h3>
+                Assigned Bus
+              </h3>
 
               <span className="card-small-text">
                 Bus information
               </span>
+
             </div>
 
           </div>
@@ -1393,27 +1811,39 @@ const API =
           <div className="info-list">
 
             <div className="info-row">
-              <span>Bus Number</span>
+
+              <span>
+                Bus Number
+              </span>
 
               <strong>
                 {driver.busNumber}
               </strong>
+
             </div>
 
             <div className="info-row">
-              <span>Capacity</span>
+
+              <span>
+                Capacity
+              </span>
 
               <strong>
                 {driver.capacity} Students
               </strong>
+
             </div>
 
             <div className="info-row">
-              <span>Route</span>
+
+              <span>
+                Route
+              </span>
 
               <strong>
                 {driver.route}
               </strong>
+
             </div>
 
           </div>
@@ -1425,9 +1855,11 @@ const API =
                 : "status-warning full-status"
             }
           >
+
             {routeStarted
               ? "🟢 Journey Running"
               : "⚪ Journey Not Started"}
+
           </div>
 
         </div>
@@ -1445,11 +1877,15 @@ const API =
             </div>
 
             <div>
-              <h3>Driver Information</h3>
+
+              <h3>
+                Driver Information
+              </h3>
 
               <span className="card-small-text">
                 Account details
               </span>
+
             </div>
 
           </div>
@@ -1458,20 +1894,58 @@ const API =
 
             <div className="info-row">
 
-              <span>Name</span>
+              <span>
+                Name
+              </span>
 
               <strong>
-                {driver.driverName}
+                {driver.driverName ||
+                  "Ramesh Patil"}
               </strong>
 
             </div>
 
             <div className="info-row">
 
-              <span>Email</span>
+              <span>
+                Email
+              </span>
 
               <strong className="email-text">
-                {driver.email}
+
+                {driver.email ||
+                  "Not Available"}
+
+              </strong>
+
+            </div>
+
+            <div className="info-row">
+
+              <span>
+                Phone
+              </span>
+
+              <strong>
+
+                {driver.phone ||
+                  "Not Available"}
+
+              </strong>
+
+            </div>
+
+            <div className="info-row">
+
+              <span>
+                License
+              </span>
+
+              <strong>
+
+                {driver.licenseNumber ||
+                  "Not Available"}
+
               </strong>
 
             </div>
@@ -1497,11 +1971,15 @@ const API =
             </div>
 
             <div>
-              <h3>Journey Status</h3>
+
+              <h3>
+                Journey Status
+              </h3>
 
               <span className="card-small-text">
                 Bus trip management
               </span>
+
             </div>
 
           </div>
@@ -1558,11 +2036,13 @@ const API =
               students.length === 0
             }
           >
+
             {journeyLoading
               ? "Processing..."
               : routeStarted
               ? "🏁 Complete Journey"
               : "▶ Start Journey"}
+
           </button>
 
         </div>
@@ -1580,11 +2060,15 @@ const API =
             </div>
 
             <div>
-              <h3>Student QR Scanner</h3>
+
+              <h3>
+                Student QR Scanner
+              </h3>
 
               <span className="card-small-text">
                 Boarding attendance
               </span>
+
             </div>
 
           </div>
@@ -1636,6 +2120,7 @@ const API =
               ></div>
 
               {attendanceLoading && (
+
                 <div
                   className="status-warning full-status"
                   style={{
@@ -1644,6 +2129,7 @@ const API =
                 >
                   ⏳ Saving attendance...
                 </div>
+
               )}
 
               <button
@@ -1711,91 +2197,106 @@ const API =
         </div>
 
         {/* ===================================================
-    STUDENT QR CODES
-=================================================== */}
+            STUDENT QR CODES
+        =================================================== */}
 
-<div className="dashboard-card">
+        <div className="dashboard-card">
 
-  <div className="card-header">
+          <div className="card-header">
 
-    <div className="card-icon">
-      🔳
-    </div>
+            <div className="card-icon">
+              🔳
+            </div>
 
-    <div>
-      <h3>Student QR Codes</h3>
+            <div>
 
-      <span className="card-small-text">
-        Registered student QR codes
-      </span>
-    </div>
+              <h3>
+                Student QR Codes
+              </h3>
 
-  </div>
+              <span className="card-small-text">
+                Registered student QR codes
+              </span>
 
-  {studentsLoading ? (
-    <div className="status-warning full-status">
-      ⏳ Loading student QR codes...
-    </div>
-  ) : students.length === 0 ? (
-    <div className="status-danger full-status">
-      ⚠️ No active students found for this bus.
-    </div>
-  ) : (
+            </div>
 
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns:
-          "repeat(auto-fit, minmax(180px, 1fr))",
-        gap: "20px",
-        marginTop: "20px",
-      }}
-    >
+          </div>
 
-      {students.map((student) => (
+          {studentsLoading ? (
 
-        <div
-          key={student.id}
-          style={{
-            textAlign: "center",
-            padding: "15px",
-            border: "1px solid #e2e8f0",
-            borderRadius: "12px",
-            background: "#fff",
-          }}
-        >
+            <div className="status-warning full-status">
+              ⏳ Loading student QR codes...
+            </div>
 
-          <QRCodeCanvas
-            value={student.rollNo}
-            size={160}
-            level="H"
-            includeMargin={true}
-          />
+          ) : students.length === 0 ? (
 
-          <h4>
-            {student.studentName}
-          </h4>
+            <div className="status-danger full-status">
+              ⚠️ No active students found for this bus.
+            </div>
 
-          <p>
-            Student ID:{" "}
-            <strong>
-              {student.rollNo}
-            </strong>
-          </p>
+          ) : (
 
-          <small>
-            Scan this QR in Driver Dashboard
-          </small>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: "20px",
+                marginTop: "20px",
+              }}
+            >
+
+              {students.map(
+                (student) => (
+
+                  <div
+                    key={student.id}
+                    style={{
+                      textAlign: "center",
+                      padding: "15px",
+                      border:
+                        "1px solid #e2e8f0",
+                      borderRadius: "12px",
+                      background: "#fff",
+                    }}
+                  >
+
+                    <QRCodeCanvas
+                      value={
+                        student.rollNo
+                      }
+                      size={160}
+                      level="H"
+                      includeMargin={
+                        true
+                      }
+                    />
+
+                    <h4>
+                      {student.studentName}
+                    </h4>
+
+                    <p>
+                      Student ID:{" "}
+                      <strong>
+                        {student.rollNo}
+                      </strong>
+                    </p>
+
+                    <small>
+                      Scan this QR in Driver Dashboard
+                    </small>
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+          )}
 
         </div>
-
-      ))}
-
-    </div>
-
-  )}
-
-</div>
 
         {/* ===================================================
             STUDENTS
@@ -1810,11 +2311,15 @@ const API =
             </div>
 
             <div>
-              <h3>Students on Bus</h3>
+
+              <h3>
+                Students on Bus
+              </h3>
 
               <span className="card-small-text">
                 Boarding attendance
               </span>
+
             </div>
 
           </div>
@@ -1836,70 +2341,79 @@ const API =
 
             ) : (
 
-              students.map((student) => {
+              students.map(
+                (student) => {
 
-                const record =
-                  attendance[
-                    student.id
-                  ];
+                  const record =
+                    attendance[
+                      student.id
+                    ];
 
-                return (
-                  <div
-                    className="student-item"
-                    key={student.id}
-                  >
+                  return (
 
-                    <div className="student-avatar">
-                      👤
-                    </div>
-
-                    <div className="student-details">
-
-                      <strong>
-                        {student.studentName}
-                      </strong>
-
-                      <span>
-                        Student ID:{" "}
-                        {student.rollNo}
-                      </span>
-
-                      {record && (
-
-                        <small
-                          style={{
-                            display:
-                              "block",
-                            marginTop:
-                              "4px",
-                            color:
-                              "#16803c",
-                          }}
-                        >
-                          🕐 Boarded at{" "}
-                          {record.time}
-                        </small>
-
-                      )}
-
-                    </div>
-
-                    <span
-                      className={
-                        record
-                          ? "student-safe"
-                          : "student-danger"
+                    <div
+                      className="student-item"
+                      key={
+                        student.id
                       }
                     >
-                      {record
-                        ? "✓"
-                        : "○"}
-                    </span>
 
-                  </div>
-                );
+                      <div className="student-avatar">
+                        👤
+                      </div>
 
-              })
+                      <div className="student-details">
+
+                        <strong>
+                          {student.studentName}
+                        </strong>
+
+                        <span>
+                          Student ID:{" "}
+                          {student.rollNo}
+                        </span>
+
+                        {record && (
+
+                          <small
+                            style={{
+                              display:
+                                "block",
+
+                              marginTop:
+                                "4px",
+
+                              color:
+                                "#16803c",
+                            }}
+                          >
+                            🕐 Boarded at{" "}
+                            {record.time}
+                          </small>
+
+                        )}
+
+                      </div>
+
+                      <span
+                        className={
+                          record
+                            ? "student-safe"
+                            : "student-danger"
+                        }
+                      >
+
+                        {record
+                          ? "✓"
+                          : "○"}
+
+                      </span>
+
+                    </div>
+
+                  );
+                }
+              )
 
             )}
 
@@ -1918,6 +2432,7 @@ const API =
                 marginTop: "15px",
               }}
             >
+
               {boardedCount ===
               students.length
                 ? "🟢 All Students Boarded"
@@ -1925,6 +2440,7 @@ const API =
                     students.length -
                     boardedCount
                   } Student(s) Pending`}
+
             </div>
 
           )}
@@ -1944,11 +2460,15 @@ const API =
             </div>
 
             <div>
-              <h3>Bus Door Status</h3>
+
+              <h3>
+                Bus Door Status
+              </h3>
 
               <span className="card-small-text">
                 Door monitoring
               </span>
+
             </div>
 
           </div>
@@ -1960,9 +2480,11 @@ const API =
                 : "big-status safe-status"
             }
           >
+
             {doorOpen
               ? "🔴 Door is OPEN"
               : "🟢 Door is CLOSED"}
+
           </div>
 
           <p className="card-description">
@@ -1979,9 +2501,11 @@ const API =
               students.length === 0
             }
           >
+
             {doorOpen
               ? "🔒 Close Door"
               : "🚪 Open Door"}
+
           </button>
 
         </div>
@@ -1999,11 +2523,15 @@ const API =
             </div>
 
             <div>
-              <h3>Child Presence</h3>
+
+              <h3>
+                Child Presence
+              </h3>
 
               <span className="card-small-text">
                 Safety detection
               </span>
+
             </div>
 
           </div>
@@ -2015,15 +2543,19 @@ const API =
                 : "big-status danger-status"
             }
           >
+
             {childPresent
               ? "🟢 Child Detected"
               : "🔴 Child Not Detected"}
+
           </div>
 
           <p className="card-description">
+
             {childPresent
               ? "Child is currently detected inside the bus."
               : "No child is currently detected."}
+
           </p>
 
           <button
@@ -2051,6 +2583,7 @@ const API =
             </div>
 
             <div>
+
               <h3>
                 Emergency GPS Tracker
               </h3>
@@ -2058,6 +2591,7 @@ const API =
               <span className="card-small-text">
                 Live bus location
               </span>
+
             </div>
 
           </div>
@@ -2082,7 +2616,9 @@ const API =
 
               <div className="gps-row">
 
-                <span>Latitude</span>
+                <span>
+                  Latitude
+                </span>
 
                 <strong>
                   {gpsLocation.latitude.toFixed(
@@ -2094,7 +2630,9 @@ const API =
 
               <div className="gps-row">
 
-                <span>Longitude</span>
+                <span>
+                  Longitude
+                </span>
 
                 <strong>
                   {gpsLocation.longitude.toFixed(
@@ -2106,7 +2644,9 @@ const API =
 
               <div className="gps-row">
 
-                <span>Accuracy</span>
+                <span>
+                  Accuracy
+                </span>
 
                 <strong>
                   {Math.round(
@@ -2120,7 +2660,9 @@ const API =
 
                 <div className="gps-row">
 
-                  <span>Student</span>
+                  <span>
+                    Student
+                  </span>
 
                   <strong>
                     {students[0].studentName}
@@ -2134,7 +2676,9 @@ const API =
 
                 <div className="gps-row">
 
-                  <span>Student ID</span>
+                  <span>
+                    Student ID
+                  </span>
 
                   <strong>
                     {students[0].rollNo}
@@ -2149,8 +2693,10 @@ const API =
           ) : (
 
             <p className="card-description">
+
               📍 Start GPS tracking to
               save the bus location.
+
             </p>
 
           )}
@@ -2171,11 +2717,15 @@ const API =
               onClick={
                 startGPSTracking
               }
-              disabled={gpsLoading}
+              disabled={
+                gpsLoading
+              }
             >
+
               {gpsLoading
                 ? "⏳ Getting GPS..."
                 : "📍 Start GPS"}
+
             </button>
 
             {gpsLocation && (
@@ -2209,11 +2759,15 @@ const API =
             </div>
 
             <div>
-              <h3>Safety Monitor</h3>
+
+              <h3>
+                Safety Monitor
+              </h3>
 
               <span className="card-small-text">
                 Real-time safety status
               </span>
+
             </div>
 
           </div>
@@ -2296,25 +2850,33 @@ const API =
             </div>
 
             <div>
-              <h3>Safety Button</h3>
+
+              <h3>
+                Safety Button
+              </h3>
 
               <span className="card-small-text">
                 Immediate assistance
               </span>
+
             </div>
 
           </div>
 
           <p className="card-description">
+
             Press the safety button if
             immediate child safety
             assistance is required.
+
           </p>
 
           <button
             type="button"
             className="safety-btn"
-            onClick={safetyButton}
+            onClick={
+              safetyButton
+            }
             disabled={
               studentsLoading ||
               students.length === 0
@@ -2338,11 +2900,15 @@ const API =
             </div>
 
             <div>
-              <h3>Emergency SOS</h3>
+
+              <h3>
+                Emergency SOS
+              </h3>
 
               <span className="card-small-text">
                 Emergency alert system
               </span>
+
             </div>
 
           </div>
@@ -2356,9 +2922,11 @@ const API =
           ) : (
 
             <p className="card-description">
+
               Send an emergency alert to
               registered parents and
               administrator.
+
             </p>
 
           )}

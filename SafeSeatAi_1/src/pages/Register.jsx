@@ -1,68 +1,113 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "./Register.css";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:9091";
+const API =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:9091";
 
 function Register() {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "PARENT",
-  });
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("PARENT");
 
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.email || !formData.password) {
-      setMessage("⚠️ Please fill all fields.");
+    setError("");
+    setSuccess("");
+
+    if (!name.trim()) {
+      setError("Please enter your name.");
       return;
     }
 
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
+
+    if (password.length < 4) {
+      setError("Password must contain at least 4 characters.");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      setLoading(true);
-      setMessage("");
+      const response = await fetch(
+        `${API}/api/users/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            role,
+          }),
+        }
+      );
 
-      const response = await fetch(`${API}/api/users/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const contentType =
+        response.headers.get("content-type") || "";
 
-      if (!response.ok) {
-        throw new Error("Registration failed");
+      let data;
+
+      if (contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;
+        }
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          typeof data === "string"
+            ? data
+            : data?.message ||
+              data?.error ||
+              "Registration failed."
+        );
+      }
 
-      console.log("Registered User:", data);
-
-      setMessage("✅ Account created successfully!");
+      setSuccess(
+        "Account created successfully! Redirecting to login..."
+      );
 
       setTimeout(() => {
         navigate("/login");
       }, 1200);
-    } catch (error) {
-      console.error("Registration Error:", error);
+    } catch (err) {
+      console.error(err);
 
-      setMessage(
-        "❌ Registration failed. Please check your connection and try again."
-      );
+      if (
+        err.message === "Failed to fetch" ||
+        err.message.includes("NetworkError")
+      ) {
+        setError(
+          "Unable to connect to SafeSeat AI server."
+        );
+      } else {
+        setError(
+          err.message ||
+            "Registration failed. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -70,61 +115,91 @@ function Register() {
 
   return (
     <div className="register-page">
+
       <div className="register-card">
 
-        <div className="register-icon">🛡️</div>
+        <div className="register-logo">
+          🛡️
+        </div>
 
         <h1>SafeSeat AI</h1>
 
         <p className="register-subtitle">
-          Create your account
+          Create your secure account
         </p>
+
+        {error && (
+          <div className="register-error">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="register-success">
+            {success}
+          </div>
+        )}
 
         <form onSubmit={handleRegister}>
 
-          <label>Full Name</label>
+          <div className="register-group">
+            <label>Full Name</label>
 
-          <input
-            type="text"
-            name="name"
-            placeholder="Enter your name"
-            value={formData.name}
-            onChange={handleChange}
-          />
+            <input
+              type="text"
+              placeholder="Enter your full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
 
-          <label>Email Address</label>
+          <div className="register-group">
+            <label>Email Address</label>
 
-          <input
-            type="email"
-            name="email"
-            placeholder="Enter your email"
-            value={formData.email}
-            onChange={handleChange}
-          />
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-          <label>Password</label>
+          <div className="register-group">
+            <label>Password</label>
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Create a password"
-            value={formData.password}
-            onChange={handleChange}
-          />
+            <input
+              type="password"
+              placeholder="Create password"
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              required
+            />
+          </div>
 
-          <label>Register As</label>
+          <div className="register-group">
+            <label>Account Type</label>
 
-          <select
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
+            <select
+              value={role}
+              onChange={(e) =>
+                setRole(e.target.value)
+              }
+            >
+              <option value="PARENT">Parent</option>
+              <option value="DRIVER">Driver</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            className="register-submit"
+            disabled={loading}
           >
-            <option value="PARENT">👨‍👩‍👧 Parent</option>
-            <option value="DRIVER">🚌 Driver</option>
-            <option value="ADMIN">👨‍💼 Admin</option>
-          </select>
-
-          <button type="submit" disabled={loading}>
             {loading
               ? "Creating Account..."
               : "Create Account →"}
@@ -132,27 +207,15 @@ function Register() {
 
         </form>
 
-        {message && (
-          <p className="register-message">
-            {message}
-          </p>
-        )}
-
-        <p className="login-text">
-          Already have an account?
-          <span onClick={() => navigate("/login")}>
-            {" "}Login
-          </span>
-        </p>
-
-        <p
-          className="back-home"
-          onClick={() => navigate("/")}
-        >
-          ← Back to Home
-        </p>
+        <div className="register-login">
+          Already have an account?{" "}
+          <Link to="/login">
+            Sign In
+          </Link>
+        </div>
 
       </div>
+
     </div>
   );
 }
